@@ -84,6 +84,7 @@ builder.Services.AddAuthentication(options =>
 
 // Services
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 
 // CORS
 builder.Services.AddCors(options =>

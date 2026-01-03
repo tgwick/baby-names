@@ -97,6 +97,15 @@ baby-names/
 | POST | `/api/auth/login` | Login, get JWT |
 | GET | `/api/auth/me` | Get current user |
 
+### Sessions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/sessions` | Create session |
+| POST | `/api/sessions/join` | Join via code |
+| GET | `/api/sessions/join/{link}` | Join via partner link |
+| GET | `/api/sessions/current` | Get active session |
+| GET | `/api/sessions/{id}` | Get session by ID |
+
 ### Health
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -108,7 +117,7 @@ See [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) for the full roadmap.
 
 - [x] Phase 1: Project Foundation
 - [x] Phase 2: Authentication
-- [ ] Phase 3: Session & Partner Linking
+- [x] Phase 3: Session & Partner Linking
 - [ ] Phase 4: Name Data Import
 - [ ] Phase 5: Voting Engine
 - [ ] Phase 6: Matching

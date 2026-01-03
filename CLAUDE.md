@@ -41,12 +41,12 @@ npm run preview    # Preview production build
 
 ### Frontend Structure
 
-- `src/stores/` - Pinia stores (e.g., `auth.ts` for JWT handling)
+- `src/stores/` - Pinia stores (`auth.ts` for JWT, `session.ts` for session state)
 - `src/services/` - API client with Axios interceptors
 - `src/router/` - Vue Router with auth guards (`requiresAuth`, `guest` meta)
-- `src/views/` - Page components
+- `src/views/` - Page components (Login, Register, Dashboard, Session views)
 - `src/components/` - Reusable components
-- `src/types/` - TypeScript interfaces
+- `src/types/` - TypeScript interfaces (`auth.ts`, `session.ts`)
 
 ## API Endpoints
 
@@ -54,6 +54,13 @@ npm run preview    # Preview production build
 - `POST /api/auth/register` - Register with email/password/displayName
 - `POST /api/auth/login` - Login, returns JWT token
 - `GET /api/auth/me` - Get current user (requires auth)
+
+### Sessions
+- `POST /api/sessions` - Create session with targetGender (0=Male, 1=Female, 2=Neutral)
+- `POST /api/sessions/join` - Join via JoinCode
+- `GET /api/sessions/join/{partnerLink}` - Join via partner link
+- `GET /api/sessions/current` - Get current active session
+- `GET /api/sessions/{id}` - Get session by ID
 
 ### Health
 - `GET /api/health` - Health check

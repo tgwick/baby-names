@@ -69,23 +69,25 @@ Tables:
 
 ---
 
-## Phase 3: Session & Partner Linking
+## Phase 3: Session & Partner Linking ✅
 
 ### 3.1 Backend - Session Management
-- [ ] POST `/api/sessions` - Create session (Initiator selects gender, generates JoinCode + PartnerLink)
-- [ ] POST `/api/sessions/join` - Join via JoinCode
-- [ ] GET `/api/sessions/join/{partnerLink}` - Join via URL
-- [ ] GET `/api/sessions/current` - Get active session for user
-- [ ] Domain logic: Generate unique 6-digit codes and UUIDs for links
+- [x] POST `/api/sessions` - Create session (Initiator selects gender, generates JoinCode + PartnerLink)
+- [x] POST `/api/sessions/join` - Join via JoinCode
+- [x] GET `/api/sessions/join/{partnerLink}` - Join via URL
+- [x] GET `/api/sessions/current` - Get active session for user
+- [x] GET `/api/sessions/{id}` - Get session by ID
+- [x] Domain logic: Generate unique 6-digit codes and UUIDs for links
 
 ### 3.2 Frontend - Session Flow
-- [ ] "Create Session" page (gender selection: Male/Female/Neutral)
-- [ ] Display generated Join Code + shareable link
-- [ ] "Join Session" page (code entry)
-- [ ] Partner link landing page
-- [ ] Session status dashboard (waiting for partner / linked)
+- [x] "Create Session" page (gender selection: Male/Female/Neutral)
+- [x] Display generated Join Code + shareable link
+- [x] "Join Session" page (code entry)
+- [x] Partner link landing page
+- [x] Session status dashboard (waiting for partner / linked)
+- [x] Auto-refresh polling while waiting for partner
 
-**Deliverable:** Initiator can create session, share code/link, Partner can join and both are locked into 1-to-1 session
+**Deliverable:** Initiator can create session, share code/link, Partner can join and both are locked into 1-to-1 session ✅
 
 ---
 

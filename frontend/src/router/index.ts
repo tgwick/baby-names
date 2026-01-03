@@ -27,6 +27,29 @@ const router = createRouter({
       component: () => import('@/views/DashboardView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/session',
+      name: 'session',
+      component: () => import('@/views/SessionView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/session/create',
+      name: 'create-session',
+      component: () => import('@/views/CreateSessionView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/session/join',
+      name: 'join-session',
+      component: () => import('@/views/JoinSessionView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/join/:partnerLink',
+      name: 'join-link',
+      component: () => import('@/views/JoinLinkView.vue'),
+    },
   ],
 })
 
