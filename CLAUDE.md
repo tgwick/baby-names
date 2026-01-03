@@ -46,12 +46,15 @@ npm run e2e:ui     # Run Playwright with interactive UI
 
 ### Frontend Structure
 
-- `src/stores/` - Pinia stores (`auth.ts` for JWT, `session.ts` for session state)
+- `src/stores/` - Pinia stores (`auth.ts` for JWT, `session.ts` for session/voting state)
 - `src/services/` - API client with Axios interceptors
 - `src/router/` - Vue Router with auth guards (`requiresAuth`, `guest` meta)
-- `src/views/` - Page components (Login, Register, Dashboard, Session views)
-- `src/components/` - Reusable components
-- `src/types/` - TypeScript interfaces (`auth.ts`, `session.ts`)
+- `src/views/` - Page components:
+  - Auth: `LoginView`, `RegisterView`
+  - Session: `DashboardView`, `CreateSessionView`, `JoinSessionView`, `SessionView`
+  - Voting: `SwipeView`, `MatchesView`, `ConflictsView`
+- `src/components/` - Reusable components (`NameCard`, `MatchCelebration`, `AppHeader`)
+- `src/types/` - TypeScript interfaces (`auth.ts`, `session.ts`, `vote.ts`)
 
 ## API Endpoints
 
@@ -67,8 +70,23 @@ npm run e2e:ui     # Run Playwright with interactive UI
 - `GET /api/sessions/current` - Get current active session
 - `GET /api/sessions/{id}` - Get session by ID
 
+### Names
+- `GET /api/names/next?count=N` - Fetch N random unvoted names for current session
+- `GET /api/names/batch?count=N` - Alias for next
+
+### Votes
+- `POST /api/votes` - Submit vote (NameId, VoteType: 0=Like, 1=Dislike)
+- `GET /api/votes/matches` - Get mutual likes for current session
+- `GET /api/votes/stats` - Get voting statistics (total votes, likes, matches)
+
+### Conflicts
+- `GET /api/conflicts` - Get voting conflicts (names one liked, other disliked)
+- `POST /api/conflicts/{nameId}/clear` - Clear your dislike on a name
+
 ### Health
-- `GET /api/health` - Health check
+- `GET /api/health` - Combined health check
+- `GET /api/health/ready` - Readiness probe (includes DB check)
+- `GET /api/health/live` - Liveness probe
 
 ## Key Patterns
 
@@ -93,6 +111,7 @@ PostgreSQL with tables:
 - Uses in-memory database (`Microsoft.EntityFrameworkCore.InMemory`) and Moq for mocking
 - `Services/SessionServiceTests.cs` - Session creation, joining, validation
 - `Services/NameServiceTests.cs` - Name fetching, gender filtering, vote exclusion
+- `Services/VoteServiceTests.cs` - Vote submission, matches, conflicts detection
 - `Helpers/TestDbContextFactory.cs` - Test database setup helper
 
 ### Frontend Unit Tests (Vitest)
@@ -102,9 +121,11 @@ PostgreSQL with tables:
 
 ### E2E Tests (Playwright)
 - **Location:** `frontend/e2e/`
+- `auth.setup.ts` - Authentication fixture (creates test user, saves storageState)
 - `auth.spec.ts` - Authentication flows, form validation, protected routes
-- `session.spec.ts` - Session management, redirects
-- **Config:** `frontend/playwright.config.ts`
+- `session.spec.ts` - Unauthenticated session redirects
+- `session.authenticated.ts` - Authenticated session tests (create, join, dashboard)
+- **Config:** `frontend/playwright.config.ts` - Multi-project setup (setup, chromium, chromium-authenticated)
 
 ## Configuration
 
