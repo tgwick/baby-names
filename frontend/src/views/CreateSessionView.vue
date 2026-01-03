@@ -7,17 +7,40 @@ import { Gender } from '@/types/session'
 const router = useRouter()
 const sessionStore = useSessionStore()
 
-const selectedGender = ref<Gender>(Gender.Neutral)
+const selectedGender = ref<Gender | null>(null)
 const loading = ref(false)
 const error = ref('')
 
 const genderOptions = [
-  { value: Gender.Male, label: 'Boy Names', icon: '👦' },
-  { value: Gender.Female, label: 'Girl Names', icon: '👧' },
-  { value: Gender.Neutral, label: 'All Names', icon: '👶' },
+  {
+    value: Gender.Male,
+    label: 'Boy Names',
+    icon: '👦',
+    description: 'Browse masculine names',
+    color: 'sky',
+  },
+  {
+    value: Gender.Female,
+    label: 'Girl Names',
+    icon: '👧',
+    description: 'Browse feminine names',
+    color: 'lavender',
+  },
+  {
+    value: Gender.Neutral,
+    label: 'All Names',
+    icon: '👶',
+    description: 'Browse all names together',
+    color: 'mint',
+  },
 ]
 
 async function handleCreate() {
+  if (selectedGender.value === null) {
+    error.value = 'Please select a name category'
+    return
+  }
+
   error.value = ''
   loading.value = true
 
@@ -34,48 +57,87 @@ async function handleCreate() {
 </script>
 
 <template>
-  <div class="max-w-md mx-auto">
-    <div class="bg-white p-8 rounded-xl shadow-sm">
-      <h1 class="text-2xl font-bold text-center mb-2">Create a Session</h1>
-      <p class="text-gray-600 text-center mb-6">
-        Choose what type of names you'd like to browse
-      </p>
+  <div class="max-w-lg mx-auto">
+    <div class="card-elevated p-8 md:p-10 animate-slide-up">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--color-blush)] mb-4 animate-bounce-in">
+          <span class="text-3xl">✨</span>
+        </div>
+        <h1 class="font-display text-3xl font-semibold text-[var(--color-warm-gray)] mb-2">
+          Start Your Journey
+        </h1>
+        <p class="text-[var(--color-warm-gray-light)]">
+          What kind of names would you like to explore?
+        </p>
+      </div>
 
-      <div v-if="error" class="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+      <!-- Error Message -->
+      <div v-if="error" class="error-message mb-6 animate-slide-up">
         {{ error }}
       </div>
 
-      <div class="space-y-3 mb-6">
+      <!-- Gender Selection -->
+      <div class="space-y-4 mb-8">
         <button
-          v-for="option in genderOptions"
+          v-for="(option, index) in genderOptions"
           :key="option.value"
           type="button"
           @click="selectedGender = option.value"
+          class="gender-card w-full text-left opacity-0 animate-slide-up"
           :class="[
-            'w-full p-4 rounded-lg border-2 text-left flex items-center gap-4 transition-all',
-            selectedGender === option.value
-              ? 'border-rose-500 bg-rose-50'
-              : 'border-gray-200 hover:border-gray-300',
+            selectedGender === option.value ? 'selected' : '',
+            `stagger-${index + 1}`,
           ]"
+          :style="{ animationFillMode: 'forwards' }"
         >
-          <span class="text-3xl">{{ option.icon }}</span>
-          <span class="font-medium">{{ option.label }}</span>
+          <div class="flex items-center gap-4">
+            <span class="icon">{{ option.icon }}</span>
+            <div class="flex-1">
+              <span class="font-display text-lg font-semibold text-[var(--color-warm-gray)] block">
+                {{ option.label }}
+              </span>
+              <span class="text-sm text-[var(--color-warm-gray-light)]">
+                {{ option.description }}
+              </span>
+            </div>
+            <div
+              class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
+              :class="
+                selectedGender === option.value
+                  ? 'border-[var(--color-coral)] bg-[var(--color-coral)]'
+                  : 'border-[var(--color-peach-light)]'
+              "
+            >
+              <svg
+                v-if="selectedGender === option.value"
+                class="w-4 h-4 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
         </button>
       </div>
 
+      <!-- Create Button -->
       <button
         @click="handleCreate"
-        :disabled="loading"
-        class="w-full py-3 text-white bg-rose-500 rounded-lg hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        :disabled="loading || selectedGender === null"
+        class="btn-primary w-full text-center"
       >
-        {{ loading ? 'Creating...' : 'Create Session' }}
+        <span>{{ loading ? 'Creating your session...' : 'Create Session' }}</span>
       </button>
 
+      <!-- Cancel Link -->
       <RouterLink
         to="/dashboard"
-        class="block mt-4 text-center text-gray-600 hover:text-gray-800"
+        class="block mt-6 text-center text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors"
       >
-        Cancel
+        ← Back to Dashboard
       </RouterLink>
     </div>
   </div>

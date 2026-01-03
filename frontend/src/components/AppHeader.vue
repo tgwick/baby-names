@@ -12,23 +12,34 @@ async function handleLogout() {
 </script>
 
 <template>
-  <header class="bg-white shadow-sm">
+  <header class="bg-white/70 backdrop-blur-md border-b border-[var(--color-peach-light)]/30 sticky top-0 z-50">
     <nav class="container mx-auto px-4 py-4 flex items-center justify-between">
-      <RouterLink to="/" class="text-2xl font-bold text-rose-500">
-        NameMatch
+      <RouterLink to="/" class="flex items-center gap-2 group">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-coral)] to-[var(--color-peach)] flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+          <span class="text-lg">💕</span>
+        </div>
+        <span class="font-display text-2xl font-semibold text-[var(--color-warm-gray)] hidden sm:block">
+          NameMatch
+        </span>
       </RouterLink>
 
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
         <template v-if="authStore.isAuthenticated">
           <RouterLink
             to="/dashboard"
-            class="text-gray-600 hover:text-gray-900"
+            class="px-4 py-2 text-[var(--color-warm-gray)] hover:text-[var(--color-coral)] font-medium transition-colors hidden sm:block"
           >
             Dashboard
           </RouterLink>
+          <RouterLink
+            to="/session"
+            class="px-4 py-2 text-[var(--color-warm-gray)] hover:text-[var(--color-coral)] font-medium transition-colors"
+          >
+            Session
+          </RouterLink>
           <button
             @click="handleLogout"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            class="px-4 py-2 text-sm font-medium text-[var(--color-warm-gray)] bg-[var(--color-cream)] rounded-xl border border-[var(--color-peach-light)] hover:bg-[var(--color-blush)] hover:border-[var(--color-peach)] transition-all"
           >
             Logout
           </button>
@@ -36,15 +47,15 @@ async function handleLogout() {
         <template v-else>
           <RouterLink
             to="/login"
-            class="text-gray-600 hover:text-gray-900"
+            class="px-4 py-2 text-[var(--color-warm-gray)] hover:text-[var(--color-coral)] font-medium transition-colors"
           >
             Login
           </RouterLink>
           <RouterLink
             to="/register"
-            class="px-4 py-2 text-sm font-medium text-white bg-rose-500 rounded-lg hover:bg-rose-600"
+            class="btn-primary text-sm py-2.5 px-5"
           >
-            Sign Up
+            <span>Sign Up</span>
           </RouterLink>
         </template>
       </div>

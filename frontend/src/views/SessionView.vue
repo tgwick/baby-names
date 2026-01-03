@@ -7,7 +7,7 @@ import { Gender } from '@/types/session'
 const router = useRouter()
 const sessionStore = useSessionStore()
 
-const copied = ref(false)
+const copied = ref<'code' | 'link' | null>(null)
 let refreshInterval: number | null = null
 
 const genderLabel = computed(() => {
@@ -21,6 +21,17 @@ const genderLabel = computed(() => {
   }
 })
 
+const genderIcon = computed(() => {
+  switch (sessionStore.session?.targetGender) {
+    case Gender.Male:
+      return '👦'
+    case Gender.Female:
+      return '👧'
+    default:
+      return '👶'
+  }
+})
+
 const partnerName = computed(() => {
   if (!sessionStore.session) return ''
   return sessionStore.session.isInitiator
@@ -31,15 +42,15 @@ const partnerName = computed(() => {
 async function copyCode() {
   if (!sessionStore.session) return
   await navigator.clipboard.writeText(sessionStore.session.joinCode)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 2000)
+  copied.value = 'code'
+  setTimeout(() => (copied.value = null), 2000)
 }
 
 async function copyLink() {
   if (!sessionStore.shareableLink) return
   await navigator.clipboard.writeText(sessionStore.shareableLink)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 2000)
+  copied.value = 'link'
+  setTimeout(() => (copied.value = null), 2000)
 }
 
 onMounted(async () => {
@@ -50,7 +61,6 @@ onMounted(async () => {
     return
   }
 
-  // Poll for partner joining every 5 seconds while waiting
   if (sessionStore.isWaitingForPartner) {
     refreshInterval = window.setInterval(async () => {
       await sessionStore.refreshSession()
@@ -72,123 +82,179 @@ onUnmounted(() => {
 <template>
   <div class="max-w-2xl mx-auto">
     <!-- Loading State -->
-    <div v-if="sessionStore.loading && !sessionStore.session" class="text-center py-12">
-      <div class="animate-pulse">
-        <div class="text-4xl mb-4">⏳</div>
-        <p class="text-gray-600">Loading session...</p>
+    <div v-if="sessionStore.loading && !sessionStore.session" class="text-center py-16">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[var(--color-blush)] mb-6 animate-pulse-soft">
+        <span class="text-4xl">💫</span>
       </div>
+      <p class="text-[var(--color-warm-gray-light)] font-medium">Loading your session...</p>
     </div>
 
     <!-- Waiting for Partner -->
     <div v-else-if="sessionStore.isWaitingForPartner" class="space-y-6">
-      <div class="bg-white p-8 rounded-xl shadow-sm text-center">
-        <div class="text-5xl mb-4">💑</div>
-        <h1 class="text-2xl font-bold mb-2">Waiting for Your Partner</h1>
-        <p class="text-gray-600 mb-6">
-          Share the code or link below with your partner to get started!
+      <div class="card-elevated p-8 md:p-10 text-center animate-slide-up">
+        <!-- Floating hearts animation -->
+        <div class="relative inline-block mb-6">
+          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--color-peach-light)] to-[var(--color-blush)] flex items-center justify-center animate-float">
+            <span class="text-5xl">💑</span>
+          </div>
+          <div class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[var(--color-coral)] flex items-center justify-center animate-pulse-soft">
+            <span class="text-sm">✨</span>
+          </div>
+        </div>
+
+        <h1 class="font-display text-3xl font-semibold text-[var(--color-warm-gray)] mb-3">
+          Waiting for Your Partner
+        </h1>
+        <p class="text-[var(--color-warm-gray-light)] mb-8 max-w-sm mx-auto">
+          Share the code or link below and start discovering baby names together!
         </p>
 
-        <div class="bg-gray-50 p-6 rounded-lg mb-6">
-          <p class="text-sm text-gray-500 mb-2">Join Code</p>
+        <!-- Join Code Display -->
+        <div class="bg-[var(--color-cream)] rounded-2xl p-6 mb-6">
+          <p class="text-sm font-medium text-[var(--color-warm-gray-light)] mb-3 uppercase tracking-wide">
+            Your Session Code
+          </p>
           <div class="flex items-center justify-center gap-4">
-            <span class="text-4xl font-mono font-bold tracking-widest">
+            <span class="join-code">
               {{ sessionStore.session?.joinCode }}
             </span>
             <button
               @click="copyCode"
-              class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-              :title="copied ? 'Copied!' : 'Copy code'"
+              class="copy-btn"
+              :class="{ copied: copied === 'code' }"
             >
-              <span v-if="copied">✓</span>
-              <span v-else>📋</span>
+              {{ copied === 'code' ? '✓ Copied!' : 'Copy' }}
             </button>
           </div>
         </div>
 
-        <div class="border-t pt-6">
-          <p class="text-sm text-gray-500 mb-3">Or share this link</p>
-          <div class="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
+        <!-- Shareable Link -->
+        <div class="border-t-2 border-[var(--color-cream-dark)] pt-6">
+          <p class="text-sm font-medium text-[var(--color-warm-gray-light)] mb-3">
+            Or share this link directly
+          </p>
+          <div class="link-container">
             <input
               :value="sessionStore.shareableLink"
               readonly
-              class="flex-1 bg-transparent text-sm text-gray-600 outline-none"
+              class="truncate"
             />
             <button
               @click="copyLink"
-              class="px-4 py-2 text-sm text-white bg-rose-500 rounded-lg hover:bg-rose-600 transition-colors"
+              class="btn-primary px-5 py-2.5 text-sm whitespace-nowrap"
             >
-              {{ copied ? 'Copied!' : 'Copy Link' }}
+              <span>{{ copied === 'link' ? '✓ Copied!' : 'Copy Link' }}</span>
             </button>
           </div>
         </div>
-      </div>
 
-      <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h2 class="font-semibold mb-2">Session Details</h2>
-        <div class="text-gray-600">
-          <p><span class="font-medium">Looking for:</span> {{ genderLabel }}</p>
-          <p><span class="font-medium">Status:</span> Waiting for partner to join</p>
+        <!-- Waiting indicator -->
+        <div class="mt-8 flex items-center justify-center gap-2 text-[var(--color-warm-gray-light)]">
+          <div class="flex gap-1">
+            <span class="w-2 h-2 rounded-full bg-[var(--color-peach)] animate-pulse" style="animation-delay: 0s;"></span>
+            <span class="w-2 h-2 rounded-full bg-[var(--color-peach)] animate-pulse" style="animation-delay: 0.2s;"></span>
+            <span class="w-2 h-2 rounded-full bg-[var(--color-peach)] animate-pulse" style="animation-delay: 0.4s;"></span>
+          </div>
+          <span class="text-sm">Listening for your partner...</span>
         </div>
       </div>
-    </div>
 
-    <!-- Active Session -->
-    <div v-else-if="sessionStore.isActive" class="space-y-6">
-      <div class="bg-white p-8 rounded-xl shadow-sm text-center">
-        <div class="text-5xl mb-4">🎉</div>
-        <h1 class="text-2xl font-bold mb-2">You're Connected!</h1>
-        <p class="text-gray-600 mb-4">
-          You and <strong>{{ partnerName }}</strong> are ready to start finding baby names together.
-        </p>
-
-        <div class="bg-rose-50 p-4 rounded-lg mb-6">
-          <p class="text-sm text-rose-700">
-            <span class="font-medium">Looking for:</span> {{ genderLabel }}
-          </p>
-        </div>
-
-        <button
-          disabled
-          class="w-full py-4 text-white bg-rose-500 rounded-lg hover:bg-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Start Swiping (Coming in Phase 5)
-        </button>
-      </div>
-
-      <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h2 class="font-semibold mb-4">Your Partner</h2>
+      <!-- Session Info Card -->
+      <div class="card p-6 animate-slide-up stagger-2" style="animation-fill-mode: forwards; opacity: 0;">
         <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-2xl">
-            👤
+          <div class="w-12 h-12 rounded-xl bg-[var(--color-blush)] flex items-center justify-center text-2xl">
+            {{ genderIcon }}
           </div>
           <div>
-            <p class="font-medium">{{ partnerName }}</p>
-            <p class="text-sm text-gray-500">
-              Joined {{ new Date(sessionStore.session?.linkedAt || '').toLocaleDateString() }}
+            <h3 class="font-display font-semibold text-[var(--color-warm-gray)]">Session Details</h3>
+            <p class="text-sm text-[var(--color-warm-gray-light)]">
+              Browsing <strong>{{ genderLabel }}</strong>
             </p>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Active Session - Partner Connected! -->
+    <div v-else-if="sessionStore.isActive" class="space-y-6">
+      <div class="card-elevated p-8 md:p-10 text-center animate-bounce-in">
+        <!-- Celebration header -->
+        <div class="relative inline-block mb-6">
+          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--color-mint)] to-[#98D9C2] flex items-center justify-center">
+            <span class="text-5xl">🎉</span>
+          </div>
+          <!-- Confetti decorations -->
+          <span class="absolute -top-4 -left-4 text-2xl animate-bounce" style="animation-delay: 0.1s;">🎊</span>
+          <span class="absolute -top-2 -right-6 text-xl animate-bounce" style="animation-delay: 0.3s;">✨</span>
+          <span class="absolute -bottom-2 -left-6 text-xl animate-bounce" style="animation-delay: 0.2s;">💫</span>
+        </div>
+
+        <h1 class="font-display text-3xl font-semibold text-[var(--color-warm-gray)] mb-3">
+          You're Connected!
+        </h1>
+        <p class="text-[var(--color-warm-gray-light)] mb-6 max-w-sm mx-auto">
+          You and <strong class="text-[var(--color-coral)]">{{ partnerName }}</strong> are ready to find the perfect name together.
+        </p>
+
+        <!-- Session badge -->
+        <div class="inline-flex items-center gap-3 bg-[var(--color-blush)] px-5 py-3 rounded-full mb-8">
+          <span class="text-xl">{{ genderIcon }}</span>
+          <span class="font-medium text-[var(--color-coral)]">{{ genderLabel }}</span>
+        </div>
+
+        <!-- Start Button -->
+        <button
+          disabled
+          class="btn-primary w-full max-w-sm mx-auto text-center opacity-60 cursor-not-allowed"
+        >
+          <span>Start Swiping Names →</span>
+        </button>
+        <p class="text-sm text-[var(--color-warm-gray-light)] mt-3">
+          Coming soon in Phase 5!
+        </p>
+      </div>
+
+      <!-- Partner Card -->
+      <div class="card p-6 animate-slide-up stagger-2" style="animation-fill-mode: forwards; opacity: 0;">
+        <h3 class="font-display font-semibold text-[var(--color-warm-gray)] mb-4">Your Partner</h3>
+        <div class="flex items-center gap-4">
+          <div class="partner-avatar">
+            💝
+          </div>
+          <div class="flex-1">
+            <p class="font-semibold text-[var(--color-warm-gray)]">{{ partnerName }}</p>
+            <p class="text-sm text-[var(--color-warm-gray-light)]">
+              Joined {{ new Date(sessionStore.session?.linkedAt || '').toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              }) }}
+            </p>
+          </div>
+          <div class="status-badge active">
+            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+            Active
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- No Session -->
-    <div v-else class="bg-white p-8 rounded-xl shadow-sm text-center">
-      <div class="text-5xl mb-4">👋</div>
-      <h1 class="text-2xl font-bold mb-2">No Active Session</h1>
-      <p class="text-gray-600 mb-6">
-        Create a new session or join your partner's session to get started.
+    <div v-else class="card-elevated p-8 md:p-10 text-center animate-slide-up">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[var(--color-blush)] mb-6">
+        <span class="text-4xl">👋</span>
+      </div>
+      <h1 class="font-display text-3xl font-semibold text-[var(--color-warm-gray)] mb-3">
+        No Active Session
+      </h1>
+      <p class="text-[var(--color-warm-gray-light)] mb-8 max-w-sm mx-auto">
+        Create a new session or join your partner to start discovering names together.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <RouterLink
-          to="/session/create"
-          class="px-6 py-3 text-white bg-rose-500 rounded-lg hover:bg-rose-600 transition-colors"
-        >
-          Create Session
+        <RouterLink to="/session/create" class="btn-primary">
+          <span>Create Session</span>
         </RouterLink>
-        <RouterLink
-          to="/session/join"
-          class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-        >
+        <RouterLink to="/session/join" class="btn-secondary">
           Join Session
         </RouterLink>
       </div>

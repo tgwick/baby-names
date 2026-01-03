@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
@@ -8,10 +8,16 @@ const router = useRouter()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
 
+const partnerName = computed(() => {
+  if (!sessionStore.session) return ''
+  return sessionStore.session.isInitiator
+    ? sessionStore.session.partnerDisplayName
+    : sessionStore.session.initiatorDisplayName
+})
+
 onMounted(async () => {
   await sessionStore.fetchCurrentSession()
 
-  // Check for pending join link after login
   const pendingLink = localStorage.getItem('pendingJoinLink')
   if (pendingLink) {
     localStorage.removeItem('pendingJoinLink')
@@ -26,89 +32,137 @@ function goToSession() {
 
 <template>
   <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-8">
-      Welcome{{ authStore.user?.displayName ? `, ${authStore.user.displayName}` : '' }}!
-    </h1>
+    <!-- Welcome Header -->
+    <div class="mb-8 animate-slide-up">
+      <h1 class="font-display text-4xl font-semibold text-[var(--color-warm-gray)]">
+        Welcome back{{ authStore.user?.displayName ? `, ${authStore.user.displayName}` : '' }}!
+      </h1>
+      <p class="text-[var(--color-warm-gray-light)] mt-2">
+        Let's find the perfect name together.
+      </p>
+    </div>
 
     <!-- Active Session Banner -->
     <div
       v-if="sessionStore.hasSession"
-      class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl"
+      class="card-elevated mb-8 overflow-hidden animate-slide-up stagger-1"
+      style="animation-fill-mode: forwards; opacity: 0;"
     >
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">
-            {{ sessionStore.isWaitingForPartner ? '⏳' : '💑' }}
-          </span>
-          <div>
-            <p class="font-medium text-rose-700">
-              {{ sessionStore.isWaitingForPartner ? 'Waiting for partner to join' : 'Session active!' }}
-            </p>
-            <p class="text-sm text-rose-600">
-              {{ sessionStore.isWaitingForPartner
-                ? `Share code: ${sessionStore.session?.joinCode}`
-                : `With ${sessionStore.session?.isInitiator ? sessionStore.session?.partnerDisplayName : sessionStore.session?.initiatorDisplayName}`
-              }}
-            </p>
+      <div
+        class="p-6"
+        :class="sessionStore.isWaitingForPartner
+          ? 'bg-gradient-to-r from-[var(--color-blush)] to-[var(--color-peach-light)]'
+          : 'bg-gradient-to-r from-[var(--color-mint)] to-[#C8E6DC]'"
+      >
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center gap-4">
+            <div
+              class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+              :class="sessionStore.isWaitingForPartner ? 'bg-white/50' : 'bg-white/60'"
+            >
+              {{ sessionStore.isWaitingForPartner ? '⏳' : '💑' }}
+            </div>
+            <div>
+              <p class="font-display text-lg font-semibold" :class="sessionStore.isWaitingForPartner ? 'text-[var(--color-coral)]' : 'text-emerald-700'">
+                {{ sessionStore.isWaitingForPartner ? 'Waiting for partner' : 'Session Active!' }}
+              </p>
+              <p class="text-sm" :class="sessionStore.isWaitingForPartner ? 'text-[var(--color-coral)]/80' : 'text-emerald-600'">
+                {{ sessionStore.isWaitingForPartner
+                  ? `Share code: ${sessionStore.session?.joinCode}`
+                  : `Connected with ${partnerName}`
+                }}
+              </p>
+            </div>
           </div>
+          <button
+            @click="goToSession"
+            class="btn-primary"
+          >
+            <span>{{ sessionStore.isWaitingForPartner ? 'Share Code' : 'Continue' }} →</span>
+          </button>
         </div>
-        <button
-          @click="goToSession"
-          class="px-4 py-2 text-white bg-rose-500 rounded-lg hover:bg-rose-600 transition-colors"
-        >
-          View Session
-        </button>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h2 class="text-xl font-semibold mb-4">Start a New Session</h2>
-        <p class="text-gray-600 mb-4">
-          Create a new session to start swiping through baby names.
-          Your partner can join using a unique code.
+    <!-- Action Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <!-- Create Session Card -->
+      <div
+        class="card p-6 hover:shadow-lg transition-all duration-300 animate-slide-up stagger-2"
+        style="animation-fill-mode: forwards; opacity: 0;"
+        :class="{ 'opacity-60': sessionStore.hasSession }"
+      >
+        <div class="w-14 h-14 rounded-2xl bg-[var(--color-blush)] flex items-center justify-center text-2xl mb-4">
+          ✨
+        </div>
+        <h2 class="font-display text-xl font-semibold text-[var(--color-warm-gray)] mb-2">
+          Start a New Session
+        </h2>
+        <p class="text-[var(--color-warm-gray-light)] mb-6 text-sm leading-relaxed">
+          Create a session and invite your partner to swipe through baby names together.
         </p>
         <RouterLink
           to="/session/create"
           :class="[
-            'block w-full py-3 text-center rounded-lg transition-colors',
-            sessionStore.hasSession
-              ? 'text-gray-400 bg-gray-100 cursor-not-allowed pointer-events-none'
-              : 'text-white bg-rose-500 hover:bg-rose-600'
+            'btn-primary block text-center',
+            sessionStore.hasSession ? 'opacity-50 pointer-events-none' : ''
           ]"
         >
-          {{ sessionStore.hasSession ? 'Session Already Active' : 'Create Session' }}
+          <span>{{ sessionStore.hasSession ? 'Session Active' : 'Create Session' }}</span>
         </RouterLink>
       </div>
 
-      <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h2 class="text-xl font-semibold mb-4">Join a Session</h2>
-        <p class="text-gray-600 mb-4">
-          Have a code from your partner? Enter it here to join their session
-          and start finding names together.
+      <!-- Join Session Card -->
+      <div
+        class="card p-6 hover:shadow-lg transition-all duration-300 animate-slide-up stagger-3"
+        style="animation-fill-mode: forwards; opacity: 0;"
+        :class="{ 'opacity-60': sessionStore.hasSession }"
+      >
+        <div class="w-14 h-14 rounded-2xl bg-[var(--color-lavender)] flex items-center justify-center text-2xl mb-4">
+          🔗
+        </div>
+        <h2 class="font-display text-xl font-semibold text-[var(--color-warm-gray)] mb-2">
+          Join a Session
+        </h2>
+        <p class="text-[var(--color-warm-gray-light)] mb-6 text-sm leading-relaxed">
+          Have a code from your partner? Enter it to join their session and start matching.
         </p>
         <RouterLink
           to="/session/join"
           :class="[
-            'block w-full py-3 text-center rounded-lg transition-colors',
-            sessionStore.hasSession
-              ? 'text-gray-400 bg-gray-100 cursor-not-allowed pointer-events-none'
-              : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+            'btn-secondary block text-center',
+            sessionStore.hasSession ? 'opacity-50 pointer-events-none' : ''
           ]"
         >
-          {{ sessionStore.hasSession ? 'Session Already Active' : 'Join Session' }}
+          {{ sessionStore.hasSession ? 'Session Active' : 'Enter Code' }}
         </RouterLink>
       </div>
     </div>
 
-    <div class="mt-8 bg-white p-6 rounded-xl shadow-sm">
-      <h2 class="text-xl font-semibold mb-4">Your Matches</h2>
-      <p class="text-gray-600">
-        {{ sessionStore.hasSession && sessionStore.isActive
-          ? 'No matches yet. Start swiping to find names you both love!'
-          : 'No matches yet. Start a session to begin discovering names!'
-        }}
-      </p>
+    <!-- Matches Preview Card -->
+    <div
+      class="card p-6 animate-slide-up stagger-4"
+      style="animation-fill-mode: forwards; opacity: 0;"
+    >
+      <div class="flex items-center gap-4 mb-4">
+        <div class="w-12 h-12 rounded-xl bg-[var(--color-sky)] flex items-center justify-center text-xl">
+          💕
+        </div>
+        <div>
+          <h2 class="font-display text-xl font-semibold text-[var(--color-warm-gray)]">Your Matches</h2>
+          <p class="text-sm text-[var(--color-warm-gray-light)]">Names you both loved</p>
+        </div>
+      </div>
+
+      <div class="bg-[var(--color-cream)] rounded-xl p-6 text-center">
+        <div class="text-4xl mb-3">💝</div>
+        <p class="text-[var(--color-warm-gray-light)]">
+          {{ sessionStore.hasSession && sessionStore.isActive
+            ? 'No matches yet. Start swiping to find names you both love!'
+            : 'Start a session to begin discovering the perfect name together.'
+          }}
+        </p>
+      </div>
     </div>
   </div>
 </template>
