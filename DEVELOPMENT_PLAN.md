@@ -132,19 +132,19 @@ Tables:
 
 ---
 
-## Phase 6: Matching & Results
+## Phase 6: Matching & Results ✅
 
 ### 6.1 Backend - Match Detection
-- [ ] GET `/api/matches` - Retrieve all mutual likes for session
-- [ ] Match detection logic (both users liked same NameId)
-- [ ] Sort by match date
+- [x] GET `/api/votes/matches` - Retrieve all mutual likes for session
+- [x] Match detection logic (both users liked same NameId)
+- [x] Sort by match date
 
 ### 6.2 Frontend - Match Display
-- [ ] Match list page
-- [ ] Match notification/celebration animation when new match occurs
-- [ ] Match counter badge in navigation
+- [x] Match list page (MatchesView.vue)
+- [x] Match notification/celebration animation when new match occurs (MatchCelebration.vue)
+- [x] Match counter badge in navigation (AppHeader.vue)
 
-**Deliverable:** Matched names displayed, users see mutual likes
+**Deliverable:** Matched names displayed, users see mutual likes ✅
 
 ---
 
