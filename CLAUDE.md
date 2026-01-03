@@ -18,6 +18,7 @@ NameMatch is a collaborative web app for couples to discover and agree on baby n
 ```bash
 dotnet build NameMatch.sln          # Build solution
 dotnet run --project NameMatch.Api  # Run API (default: http://localhost:5001)
+dotnet test                         # Run all unit tests
 dotnet ef migrations add <Name> --project NameMatch.Infrastructure --startup-project NameMatch.Api
 dotnet ef database update --project NameMatch.Infrastructure --startup-project NameMatch.Api
 ```
@@ -28,6 +29,10 @@ npm install        # Install dependencies
 npm run dev        # Start dev server (localhost:5173)
 npm run build      # Type-check and build for production
 npm run preview    # Preview production build
+npm run test       # Run unit tests in watch mode
+npm run test:run   # Run unit tests once
+npm run e2e        # Run Playwright E2E tests
+npm run e2e:ui     # Run Playwright with interactive UI
 ```
 
 ## Architecture
@@ -79,6 +84,27 @@ PostgreSQL with tables:
 - **Sessions** - Links two users with JoinCode/PartnerLink, stores TargetGender
 - **Names** - Baby names with Gender, PopularityScore, Origin
 - **Votes** - User votes (Like/Dislike) on names within a session
+
+## Testing
+
+### Backend Tests (xUnit)
+- **Project:** `NameMatch.Tests`
+- **Location:** `backend/NameMatch.Tests/`
+- Uses in-memory database (`Microsoft.EntityFrameworkCore.InMemory`) and Moq for mocking
+- `Services/SessionServiceTests.cs` - Session creation, joining, validation
+- `Services/NameServiceTests.cs` - Name fetching, gender filtering, vote exclusion
+- `Helpers/TestDbContextFactory.cs` - Test database setup helper
+
+### Frontend Unit Tests (Vitest)
+- **Location:** `frontend/src/stores/__tests__/`
+- `auth.test.ts` - Auth store tests (login, register, logout, token management)
+- `session.test.ts` - Session store tests (create, join, state management)
+
+### E2E Tests (Playwright)
+- **Location:** `frontend/e2e/`
+- `auth.spec.ts` - Authentication flows, form validation, protected routes
+- `session.spec.ts` - Session management, redirects
+- **Config:** `frontend/playwright.config.ts`
 
 ## Configuration
 

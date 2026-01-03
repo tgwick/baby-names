@@ -203,15 +203,12 @@ onUnmounted(() => {
         </div>
 
         <!-- Start Button -->
-        <button
-          disabled
-          class="btn-primary w-full max-w-sm mx-auto text-center opacity-60 cursor-not-allowed"
+        <RouterLink
+          to="/swipe"
+          class="btn-primary w-full max-w-sm mx-auto text-center inline-block"
         >
           <span>Start Swiping Names →</span>
-        </button>
-        <p class="text-sm text-[var(--color-warm-gray-light)] mt-3">
-          Coming soon in Phase 5!
-        </p>
+        </RouterLink>
       </div>
 
       <!-- Partner Card -->

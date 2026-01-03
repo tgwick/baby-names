@@ -86,6 +86,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<INameService, NameService>();
+builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
 
 // CORS

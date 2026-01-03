@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useSessionStore } from '../session'
 import { Gender, SessionStatus } from '@/types/session'
+import { VoteType } from '@/types/vote'
 
 // Mock the api module
 vi.mock('@/services/api', () => ({
@@ -420,6 +421,255 @@ describe('Session Store', () => {
       await fetchPromise
 
       expect(store.nameLoading).toBe(false)
+    })
+  })
+
+  describe('submitVote', () => {
+    const mockVoteResult = {
+      voteId: 1,
+      isMatch: false,
+      match: null,
+    }
+
+    const mockMatchResult = {
+      voteId: 2,
+      isMatch: true,
+      match: {
+        nameId: 1,
+        nameText: 'Emma',
+        gender: Gender.Female,
+        origin: 'Germanic',
+        popularityScore: 95,
+        matchedAt: '2024-01-01T00:00:00Z',
+      },
+    }
+
+    it('should return null when no session', async () => {
+      const store = useSessionStore()
+      const result = await store.submitVote(1, VoteType.Like)
+
+      expect(result).toBeNull()
+      expect(api.post).not.toHaveBeenCalled()
+    })
+
+    it('should return null when session is not active', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockSession } }) // WaitingForPartner status
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      const result = await store.submitVote(1, VoteType.Like)
+
+      expect(result).toBeNull()
+    })
+
+    it('should submit vote successfully', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockVoteResult } })
+
+      const result = await store.submitVote(1, VoteType.Like)
+
+      expect(api.post).toHaveBeenCalledWith('/votes', { nameId: 1, voteType: VoteType.Like })
+      expect(result).toEqual(mockVoteResult)
+      expect(store.newMatch).toBeNull()
+    })
+
+    it('should set newMatch when vote creates a match', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockMatchResult } })
+
+      const result = await store.submitVote(1, VoteType.Like)
+
+      expect(result).toEqual(mockMatchResult)
+      expect(store.newMatch).toEqual(mockMatchResult.match)
+      expect(store.matches).toContainEqual(mockMatchResult.match)
+    })
+
+    it('should set voteLoading state during vote', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      let resolvePromise: (value: any) => void
+      const promise = new Promise((resolve) => {
+        resolvePromise = resolve
+      })
+      vi.mocked(api.post).mockReturnValueOnce(promise as any)
+
+      const votePromise = store.submitVote(1, VoteType.Like)
+      expect(store.voteLoading).toBe(true)
+
+      resolvePromise!({ data: { data: mockVoteResult } })
+      await votePromise
+
+      expect(store.voteLoading).toBe(false)
+    })
+
+    it('should handle vote error', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: { data: { errors: ['Vote failed'] } },
+      })
+
+      await expect(store.submitVote(1, VoteType.Like)).rejects.toBeDefined()
+      expect(store.error).toBe('Vote failed')
+    })
+  })
+
+  describe('fetchMatches', () => {
+    const mockMatches = [
+      {
+        nameId: 1,
+        nameText: 'Emma',
+        gender: Gender.Female,
+        origin: 'Germanic',
+        popularityScore: 95,
+        matchedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        nameId: 2,
+        nameText: 'Liam',
+        gender: Gender.Male,
+        origin: 'Irish',
+        popularityScore: 90,
+        matchedAt: '2024-01-01T01:00:00Z',
+      },
+    ]
+
+    it('should not fetch when no session', async () => {
+      const store = useSessionStore()
+      await store.fetchMatches()
+
+      expect(api.get).not.toHaveBeenCalled()
+    })
+
+    it('should not fetch when session is not active', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      await store.fetchMatches()
+
+      expect(api.get).not.toHaveBeenCalledWith('/votes/matches')
+    })
+
+    it('should fetch matches successfully', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.get).mockResolvedValueOnce({ data: { data: mockMatches } })
+
+      await store.fetchMatches()
+
+      expect(api.get).toHaveBeenCalledWith('/votes/matches')
+      expect(store.matches).toEqual(mockMatches)
+    })
+  })
+
+  describe('fetchStats', () => {
+    const mockStats = {
+      totalVotes: 10,
+      likeCount: 6,
+      dislikeCount: 4,
+      matchCount: 2,
+      namesRemaining: 100,
+    }
+
+    it('should not fetch when no session', async () => {
+      const store = useSessionStore()
+      await store.fetchStats()
+
+      expect(api.get).not.toHaveBeenCalledWith('/votes/stats')
+    })
+
+    it('should fetch stats successfully', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.get).mockResolvedValueOnce({ data: { data: mockStats } })
+
+      await store.fetchStats()
+
+      expect(api.get).toHaveBeenCalledWith('/votes/stats')
+      expect(store.stats).toEqual(mockStats)
+    })
+  })
+
+  describe('clearNewMatch', () => {
+    it('should clear newMatch', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      const mockMatchResult = {
+        voteId: 1,
+        isMatch: true,
+        match: {
+          nameId: 1,
+          nameText: 'Emma',
+          gender: Gender.Female,
+          origin: 'Germanic',
+          popularityScore: 95,
+          matchedAt: '2024-01-01T00:00:00Z',
+        },
+      }
+
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockMatchResult } })
+      await store.submitVote(1, VoteType.Like)
+
+      expect(store.newMatch).not.toBeNull()
+
+      store.clearNewMatch()
+
+      expect(store.newMatch).toBeNull()
+    })
+  })
+
+  describe('clearSession with votes', () => {
+    it('should clear all vote-related state', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      // Simulate having matches and stats
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: { data: [{ nameId: 1, nameText: 'Emma', gender: Gender.Female, origin: null, popularityScore: 90, matchedAt: '2024-01-01' }] },
+      })
+      await store.fetchMatches()
+
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: { data: { totalVotes: 5, likeCount: 3, dislikeCount: 2, matchCount: 1, namesRemaining: 50 } },
+      })
+      await store.fetchStats()
+
+      expect(store.matches.length).toBeGreaterThan(0)
+      expect(store.stats).not.toBeNull()
+
+      store.clearSession()
+
+      expect(store.matches).toEqual([])
+      expect(store.stats).toBeNull()
+      expect(store.newMatch).toBeNull()
     })
   })
 })
