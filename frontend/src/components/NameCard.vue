@@ -58,50 +58,50 @@ const popularityStars = computed(() => {
   >
     <!-- Gender badge -->
     <div
-      class="absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full shadow-md"
+      class="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full shadow-md"
       :class="`bg-gradient-to-r ${genderGradient}`"
     >
-      <div class="flex items-center gap-2">
-        <span class="text-xl">{{ genderIcon }}</span>
-        <span class="font-semibold text-white text-sm">{{ genderLabel }}</span>
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <span class="text-lg sm:text-xl">{{ genderIcon }}</span>
+        <span class="font-semibold text-white text-xs sm:text-sm">{{ genderLabel }}</span>
       </div>
     </div>
 
     <!-- Main content -->
-    <div class="pt-8 pb-6 px-8 text-center">
+    <div class="pt-6 sm:pt-8 pb-4 sm:pb-6 px-4 sm:px-8 text-center">
       <!-- Name display -->
-      <h2 class="font-display text-6xl md:text-7xl font-bold text-[var(--color-warm-gray)] mb-6 leading-tight">
+      <h2 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-[var(--color-warm-gray)] mb-4 sm:mb-6 leading-tight">
         {{ name.nameText }}
       </h2>
 
       <!-- Details -->
-      <div class="space-y-4">
+      <div class="space-y-3 sm:space-y-4">
         <!-- Origin -->
-        <div v-if="name.origin" class="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-cream)] rounded-full">
-          <span class="text-lg">🌍</span>
-          <span class="text-[var(--color-warm-gray-light)] font-medium">{{ name.origin }}</span>
+        <div v-if="name.origin" class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[var(--color-cream)] rounded-full">
+          <span class="text-base sm:text-lg">🌍</span>
+          <span class="text-[var(--color-warm-gray-light)] font-medium text-sm sm:text-base">{{ name.origin }}</span>
         </div>
 
         <!-- Popularity -->
-        <div class="flex justify-center items-center gap-1">
+        <div class="flex justify-center items-center gap-0.5 sm:gap-1">
           <span
             v-for="i in 5"
             :key="i"
-            class="text-2xl transition-all duration-200"
+            class="text-xl sm:text-2xl transition-all duration-200"
             :class="i <= popularityStars ? 'grayscale-0 scale-100' : 'grayscale opacity-30 scale-90'"
           >
             {{ i <= popularityStars ? '⭐' : '☆' }}
           </span>
         </div>
-        <p class="text-sm text-[var(--color-warm-gray-light)]">
+        <p class="text-xs sm:text-sm text-[var(--color-warm-gray-light)]">
           Popularity Score: {{ name.popularityScore }}%
         </p>
       </div>
     </div>
 
     <!-- Decorative corner elements -->
-    <div class="absolute top-4 left-4 text-3xl opacity-20 rotate-[-15deg]">💫</div>
-    <div class="absolute bottom-4 right-4 text-3xl opacity-20 rotate-[15deg]">✨</div>
+    <div class="absolute top-3 sm:top-4 left-3 sm:left-4 text-2xl sm:text-3xl opacity-20 rotate-[-15deg]">💫</div>
+    <div class="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 text-2xl sm:text-3xl opacity-20 rotate-[15deg]">✨</div>
   </div>
 </template>
 
@@ -109,15 +109,22 @@ const popularityStars = computed(() => {
 .name-card {
   position: relative;
   background: linear-gradient(180deg, #FFFFFF 0%, #FFFAF7 100%);
-  border-radius: 32px;
+  border-radius: 24px;
   box-shadow:
     0 8px 32px -8px rgba(107, 94, 87, 0.15),
     0 24px 48px -16px rgba(255, 123, 107, 0.12);
   border: 2px solid rgba(255, 173, 159, 0.2);
   overflow: visible;
-  min-height: 320px;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .name-card {
+    border-radius: 32px;
+    min-height: 320px;
+  }
 }
 </style>

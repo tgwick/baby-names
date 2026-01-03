@@ -30,4 +30,16 @@ public interface IVoteService
     /// Gets vote statistics for the user's current session.
     /// </summary>
     Task<VoteStatsDto> GetVoteStatsAsync(string userId);
+
+    /// <summary>
+    /// Gets all conflicts for the user's current session.
+    /// A conflict is when one user likes a name and the other dislikes it.
+    /// </summary>
+    Task<IEnumerable<ConflictDto>> GetConflictsAsync(string userId);
+
+    /// <summary>
+    /// Clears a user's dislike on a name, removing it from conflicts.
+    /// The name will return to the voting pool for the user who cleared their dislike.
+    /// </summary>
+    Task<bool> ClearDislikeAsync(string userId, int nameId);
 }

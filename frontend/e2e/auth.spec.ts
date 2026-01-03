@@ -114,32 +114,4 @@ test.describe('Authentication Flow', () => {
   })
 })
 
-test.describe('Full Registration and Login Flow', () => {
-  // Note: This test requires the backend to be running
-  test.skip('should register a new user and redirect to dashboard', async ({ page }) => {
-    const email = uniqueEmail()
-
-    await page.goto('/register')
-
-    await page.getByLabel(/display name/i).fill('Test User')
-    await page.getByLabel(/^email$/i).fill(email)
-    await page.getByLabel(/^password$/i).fill('SecurePassword123!')
-    await page.getByLabel(/confirm password/i).fill('SecurePassword123!')
-    await page.getByRole('button', { name: /create account/i }).click()
-
-    // Should redirect to dashboard after successful registration
-    await expect(page).toHaveURL('/dashboard', { timeout: 10000 })
-    await expect(page.getByText(/welcome back/i)).toBeVisible()
-  })
-
-  test.skip('should login with existing user and access dashboard', async ({ page }) => {
-    // This test assumes a user already exists - for integration testing
-    await page.goto('/login')
-
-    await page.getByLabel(/email/i).fill('existing@example.com')
-    await page.getByLabel(/password/i).fill('ExistingPassword123!')
-    await page.getByRole('button', { name: /sign in/i }).click()
-
-    await expect(page).toHaveURL('/dashboard', { timeout: 10000 })
-  })
-})
+// Full registration/login flow tests are now in auth.setup.ts and session.authenticated.ts

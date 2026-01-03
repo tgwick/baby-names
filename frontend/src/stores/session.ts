@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Session, CreateSessionRequest } from '@/types/session'
 import type { Name } from '@/types/name'
-import type { Match, VoteStats, VoteResult } from '@/types/vote'
+import type { Match, VoteStats, VoteResult, Conflict } from '@/types/vote'
 import { SessionStatus, Gender } from '@/types/session'
 import { VoteType } from '@/types/vote'
 import api from '@/services/api'
@@ -20,6 +20,8 @@ export const useSessionStore = defineStore('session', () => {
   const matches = ref<Match[]>([])
   const stats = ref<VoteStats | null>(null)
   const newMatch = ref<Match | null>(null)
+  const conflicts = ref<Conflict[]>([])
+  const conflictLoading = ref(false)
 
   const hasSession = computed(() => !!session.value)
   const isWaitingForPartner = computed(
@@ -109,6 +111,7 @@ export const useSessionStore = defineStore('session', () => {
     matches.value = []
     stats.value = null
     newMatch.value = null
+    conflicts.value = []
   }
 
   async function fetchNextName() {
@@ -200,6 +203,38 @@ export const useSessionStore = defineStore('session', () => {
     newMatch.value = null
   }
 
+  async function fetchConflicts() {
+    if (!session.value || !isActive.value) return
+
+    conflictLoading.value = true
+    try {
+      const response = await api.get('/conflicts')
+      conflicts.value = response.data.data || []
+    } catch (e: any) {
+      error.value = e.response?.data?.errors?.[0] || 'Failed to fetch conflicts'
+    } finally {
+      conflictLoading.value = false
+    }
+  }
+
+  async function clearDislike(nameId: number) {
+    if (!session.value || !isActive.value) return false
+
+    conflictLoading.value = true
+    error.value = null
+    try {
+      await api.post(`/conflicts/${nameId}/clear`)
+      // Remove the conflict from the list
+      conflicts.value = conflicts.value.filter((c) => c.nameId !== nameId)
+      return true
+    } catch (e: any) {
+      error.value = e.response?.data?.errors?.[0] || 'Failed to clear dislike'
+      return false
+    } finally {
+      conflictLoading.value = false
+    }
+  }
+
   return {
     // State
     session,
@@ -207,11 +242,13 @@ export const useSessionStore = defineStore('session', () => {
     loading,
     nameLoading,
     voteLoading,
+    conflictLoading,
     error,
     noMoreNames,
     matches,
     stats,
     newMatch,
+    conflicts,
     // Computed
     hasSession,
     isWaitingForPartner,
@@ -232,5 +269,8 @@ export const useSessionStore = defineStore('session', () => {
     fetchMatches,
     fetchStats,
     clearNewMatch,
+    // Conflict actions
+    fetchConflicts,
+    clearDislike,
   }
 })

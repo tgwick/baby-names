@@ -18,6 +18,21 @@ public class VoteService : IVoteService
 
     public async Task<VoteResultDto> SubmitVoteAsync(string userId, int nameId, VoteType voteType)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        if (nameId <= 0)
+        {
+            throw new ArgumentException("Name ID must be a positive integer.", nameof(nameId));
+        }
+
+        if (!Enum.IsDefined(typeof(VoteType), voteType))
+        {
+            throw new ArgumentException("Invalid vote type.", nameof(voteType));
+        }
+
         // Find the user's active session
         var session = await _context.Sessions
             .FirstOrDefaultAsync(s =>
@@ -233,6 +248,94 @@ public class VoteService : IVoteService
             MatchCount = matchCount,
             NamesRemaining = Math.Max(0, namesRemaining)
         };
+    }
+
+    public async Task<IEnumerable<ConflictDto>> GetConflictsAsync(string userId)
+    {
+        var session = await GetActiveSessionAsync(userId);
+        if (session == null)
+        {
+            return [];
+        }
+
+        var partnerId = session.InitiatorId == userId ? session.PartnerId : session.InitiatorId;
+        if (partnerId == null)
+        {
+            return [];
+        }
+
+        // Find names where one user liked and the other disliked
+        var conflicts = await (
+            from userVote in _context.Votes
+            join partnerVote in _context.Votes
+                on new { userVote.NameId, userVote.SessionId }
+                equals new { partnerVote.NameId, partnerVote.SessionId }
+            join name in _context.Names on userVote.NameId equals name.Id
+            where userVote.UserId == userId
+                && partnerVote.UserId == partnerId
+                && userVote.SessionId == session.Id
+                && ((userVote.VoteType == VoteType.Like && partnerVote.VoteType == VoteType.Dislike)
+                    || (userVote.VoteType == VoteType.Dislike && partnerVote.VoteType == VoteType.Like))
+            orderby userVote.VotedAt > partnerVote.VotedAt
+                ? userVote.VotedAt
+                : partnerVote.VotedAt descending
+            select new ConflictDto
+            {
+                NameId = name.Id,
+                NameText = name.NameText,
+                Gender = name.Gender,
+                Origin = name.Origin,
+                PopularityScore = name.PopularityScore,
+                ILikedIt = userVote.VoteType == VoteType.Like,
+                ConflictedAt = userVote.VotedAt > partnerVote.VotedAt
+                    ? userVote.VotedAt
+                    : partnerVote.VotedAt
+            }
+        ).ToListAsync();
+
+        return conflicts;
+    }
+
+    public async Task<bool> ClearDislikeAsync(string userId, int nameId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        if (nameId <= 0)
+        {
+            throw new ArgumentException("Name ID must be a positive integer.", nameof(nameId));
+        }
+
+        var session = await GetActiveSessionAsync(userId);
+        if (session == null)
+        {
+            throw new InvalidOperationException("You must have an active session to clear a dislike.");
+        }
+
+        // Find the user's vote for this name
+        var vote = await _context.Votes
+            .FirstOrDefaultAsync(v =>
+                v.UserId == userId &&
+                v.NameId == nameId &&
+                v.SessionId == session.Id);
+
+        if (vote == null)
+        {
+            throw new InvalidOperationException("Vote not found.");
+        }
+
+        if (vote.VoteType != VoteType.Dislike)
+        {
+            throw new InvalidOperationException("You can only clear a dislike vote.");
+        }
+
+        // Remove the vote so the name returns to the voting pool
+        _context.Votes.Remove(vote);
+        await _context.SaveChangesAsync();
+
+        return true;
     }
 
     private async Task<Session?> GetActiveSessionAsync(string userId)

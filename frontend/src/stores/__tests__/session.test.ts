@@ -672,4 +672,148 @@ describe('Session Store', () => {
       expect(store.newMatch).toBeNull()
     })
   })
+
+  describe('fetchConflicts', () => {
+    const mockConflicts = [
+      {
+        nameId: 1,
+        nameText: 'Emma',
+        gender: Gender.Female,
+        origin: 'Germanic',
+        popularityScore: 90,
+        iLikedIt: true,
+        conflictedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        nameId: 2,
+        nameText: 'Liam',
+        gender: Gender.Male,
+        origin: 'Irish',
+        popularityScore: 95,
+        iLikedIt: false,
+        conflictedAt: '2024-01-02T00:00:00Z',
+      },
+    ]
+
+    it('should not fetch conflicts when no session', async () => {
+      const store = useSessionStore()
+      await store.fetchConflicts()
+
+      expect(api.get).not.toHaveBeenCalledWith('/conflicts')
+      expect(store.conflicts).toEqual([])
+    })
+
+    it('should not fetch conflicts when session is waiting for partner', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+      await store.fetchConflicts()
+
+      expect(api.get).not.toHaveBeenCalledWith('/conflicts')
+    })
+
+    it('should fetch conflicts when session is active', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.get).mockResolvedValueOnce({ data: { data: mockConflicts } })
+
+      await store.fetchConflicts()
+
+      expect(api.get).toHaveBeenCalledWith('/conflicts')
+      expect(store.conflicts).toEqual(mockConflicts)
+    })
+
+    it('should set error on fetch conflicts failure', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.get).mockRejectedValueOnce({
+        response: { data: { errors: ['Failed to fetch conflicts'] } },
+      })
+
+      await store.fetchConflicts()
+
+      expect(store.error).toBe('Failed to fetch conflicts')
+    })
+  })
+
+  describe('clearDislike', () => {
+    it('should not clear dislike when no session', async () => {
+      const store = useSessionStore()
+      const result = await store.clearDislike(1)
+
+      expect(result).toBe(false)
+      expect(api.post).not.toHaveBeenCalledWith('/conflicts/1/clear')
+    })
+
+    it('should clear dislike and remove from conflicts list', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      // Set up conflicts
+      const mockConflicts = [
+        { nameId: 1, nameText: 'Emma', gender: Gender.Female, origin: null, popularityScore: 90, iLikedIt: false, conflictedAt: '2024-01-01' },
+        { nameId: 2, nameText: 'Liam', gender: Gender.Male, origin: null, popularityScore: 95, iLikedIt: false, conflictedAt: '2024-01-02' },
+      ]
+      vi.mocked(api.get).mockResolvedValueOnce({ data: { data: mockConflicts } })
+      await store.fetchConflicts()
+
+      expect(store.conflicts).toHaveLength(2)
+
+      // Clear dislike for Emma
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: true } })
+      const result = await store.clearDislike(1)
+
+      expect(result).toBe(true)
+      expect(api.post).toHaveBeenCalledWith('/conflicts/1/clear')
+      expect(store.conflicts).toHaveLength(1)
+      expect(store.conflicts[0]!.nameId).toBe(2)
+    })
+
+    it('should return false and set error on clear dislike failure', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: { data: { errors: ['Cannot clear dislike'] } },
+      })
+
+      const result = await store.clearDislike(1)
+
+      expect(result).toBe(false)
+      expect(store.error).toBe('Cannot clear dislike')
+    })
+  })
+
+  describe('clearSession with conflicts', () => {
+    it('should clear conflicts when clearing session', async () => {
+      vi.mocked(api.post).mockResolvedValueOnce({ data: { data: mockActiveSession } })
+
+      const store = useSessionStore()
+      await store.createSession(Gender.Female)
+
+      // Set up conflicts
+      const mockConflicts = [
+        { nameId: 1, nameText: 'Emma', gender: Gender.Female, origin: null, popularityScore: 90, iLikedIt: false, conflictedAt: '2024-01-01' },
+      ]
+      vi.mocked(api.get).mockResolvedValueOnce({ data: { data: mockConflicts } })
+      await store.fetchConflicts()
+
+      expect(store.conflicts).toHaveLength(1)
+
+      store.clearSession()
+
+      expect(store.conflicts).toEqual([])
+    })
+  })
 })

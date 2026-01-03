@@ -9,8 +9,12 @@ using NameMatch.Infrastructure.Identity;
 
 namespace NameMatch.Api.Controllers;
 
+/// <summary>
+/// Authentication endpoints for user registration, login, and profile management.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -27,7 +31,16 @@ public class AuthController : ControllerBase
         _jwtService = jwtService;
     }
 
+    /// <summary>
+    /// Register a new user account.
+    /// </summary>
+    /// <param name="request">Registration details including email, password, and optional display name.</param>
+    /// <returns>JWT token and user information.</returns>
+    /// <response code="200">Successfully registered and authenticated.</response>
+    /// <response code="400">Email already registered or validation failed.</response>
     [HttpPost("register")]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
     {
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
@@ -58,7 +71,16 @@ public class AuthController : ControllerBase
         }));
     }
 
+    /// <summary>
+    /// Authenticate a user and obtain a JWT token.
+    /// </summary>
+    /// <param name="request">Login credentials (email and password).</param>
+    /// <returns>JWT token and user information.</returns>
+    /// <response code="200">Successfully authenticated.</response>
+    /// <response code="401">Invalid email or password.</response>
     [HttpPost("login")]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
@@ -82,8 +104,18 @@ public class AuthController : ControllerBase
         }));
     }
 
+    /// <summary>
+    /// Get the currently authenticated user's profile.
+    /// </summary>
+    /// <returns>User profile information.</returns>
+    /// <response code="200">User profile retrieved successfully.</response>
+    /// <response code="401">User not authenticated.</response>
+    /// <response code="404">User not found.</response>
     [Authorize]
     [HttpGet("me")]
+    [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<UserDto>>> Me()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)

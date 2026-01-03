@@ -42,3 +42,14 @@ export interface VoteStats {
   matchCount: number
   namesRemaining: number
 }
+
+export interface Conflict {
+  nameId: number
+  nameText: string
+  gender: Gender
+  origin: string | null
+  popularityScore: number
+  /** True if I liked this name but partner disliked it */
+  iLikedIt: boolean
+  conflictedAt: string
+}

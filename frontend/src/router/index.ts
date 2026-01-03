@@ -62,6 +62,12 @@ const router = createRouter({
       component: () => import('@/views/MatchesView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/conflicts',
+      name: 'conflicts',
+      component: () => import('@/views/ConflictsView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

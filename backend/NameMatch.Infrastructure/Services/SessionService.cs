@@ -22,6 +22,13 @@ public class SessionService : ISessionService
 
     public async Task<SessionDto> CreateSessionAsync(string userId, CreateSessionRequest request)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        ArgumentNullException.ThrowIfNull(request);
+
         // Check if user already has an active session
         var existingSession = await _context.Sessions
             .FirstOrDefaultAsync(s =>
@@ -52,6 +59,16 @@ public class SessionService : ISessionService
 
     public async Task<SessionDto> JoinByCodeAsync(string userId, string joinCode)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        if (string.IsNullOrWhiteSpace(joinCode))
+        {
+            throw new ArgumentException("Join code is required.", nameof(joinCode));
+        }
+
         var session = await _context.Sessions
             .FirstOrDefaultAsync(s => s.JoinCode == joinCode.ToUpper());
 
@@ -65,6 +82,16 @@ public class SessionService : ISessionService
 
     public async Task<SessionDto> JoinByLinkAsync(string userId, string partnerLink)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        if (string.IsNullOrWhiteSpace(partnerLink))
+        {
+            throw new ArgumentException("Partner link is required.", nameof(partnerLink));
+        }
+
         var session = await _context.Sessions
             .FirstOrDefaultAsync(s => s.PartnerLink == partnerLink);
 

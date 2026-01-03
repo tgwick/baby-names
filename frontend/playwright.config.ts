@@ -13,15 +13,41 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
+    // Setup project - runs first to create authentication state
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
+    // Tests that don't need authentication
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /.*\.setup\.ts/,
+      dependencies: ['setup'],
+    },
+    // Tests that need authentication
+    {
+      name: 'chromium-authenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      testMatch: /.*\.authenticated\.ts/,
+      dependencies: ['setup'],
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    {
+      command: 'dotnet run --project ../backend/NameMatch.Api',
+      url: 'http://localhost:5001/api/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+  ],
 })

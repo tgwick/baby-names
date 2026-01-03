@@ -1,7 +1,10 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NameMatch.Application.Interfaces;
@@ -11,20 +14,38 @@ using NameMatch.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "NameMatch API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "NameMatch API",
+        Version = "v1",
+        Description = "A collaborative web API for couples to discover and agree on baby names through a Like/Dislike voting system with matching.",
+        Contact = new OpenApiContact
+        {
+            Name = "NameMatch Team",
+            Email = "support@namematch.app"
+        }
+    });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme",
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -38,6 +59,24 @@ builder.Services.AddSwaggerGen(c =>
             },
             Array.Empty<string>()
         }
+    });
+
+    // Include XML comments
+    var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+
+    // Add tags for grouping
+    c.TagActionsBy(api =>
+    {
+        if (api.GroupName != null)
+            return [api.GroupName];
+        if (api.ActionDescriptor is Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor controllerActionDescriptor)
+            return [controllerActionDescriptor.ControllerName];
+        return ["Other"];
     });
 });
 
@@ -101,7 +140,42 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>("database", HealthStatus.Unhealthy);
+
 var app = builder.Build();
+
+// Request logging middleware
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    var correlationId = Guid.NewGuid().ToString("N")[..8];
+    context.Items["CorrelationId"] = correlationId;
+
+    var stopwatch = Stopwatch.StartNew();
+    var path = context.Request.Path;
+    var method = context.Request.Method;
+
+    logger.LogInformation("[{CorrelationId}] {Method} {Path} - Started", correlationId, method, path);
+
+    try
+    {
+        await next();
+        stopwatch.Stop();
+        logger.LogInformation(
+            "[{CorrelationId}] {Method} {Path} - Completed {StatusCode} in {ElapsedMs}ms",
+            correlationId, method, path, context.Response.StatusCode, stopwatch.ElapsedMilliseconds);
+    }
+    catch (Exception ex)
+    {
+        stopwatch.Stop();
+        logger.LogError(ex,
+            "[{CorrelationId}] {Method} {Path} - Failed with exception in {ElapsedMs}ms",
+            correlationId, method, path, stopwatch.ElapsedMilliseconds);
+        throw;
+    }
+});
 
 // Seed data on startup
 using (var scope = app.Services.CreateScope())
@@ -123,5 +197,37 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Health check endpoints
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds
+            }),
+            totalDuration = report.TotalDuration.TotalMilliseconds
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false // Always returns healthy
+});
 
 app.Run();

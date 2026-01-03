@@ -7,9 +7,13 @@ using NameMatch.Application.Interfaces;
 
 namespace NameMatch.Api.Controllers;
 
+/// <summary>
+/// Voting endpoints for submitting likes/dislikes on baby names and retrieving matches.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[Produces("application/json")]
 public class VotesController : ControllerBase
 {
     private readonly IVoteService _voteService;
@@ -21,9 +25,16 @@ public class VotesController : ControllerBase
 
     /// <summary>
     /// Submit a vote (Like/Dislike) for a name.
-    /// Returns whether this vote created a match.
     /// </summary>
+    /// <param name="request">Vote details including name ID and vote type (Like=0, Dislike=1).</param>
+    /// <returns>Vote result including whether this created a match.</returns>
+    /// <response code="200">Vote submitted successfully.</response>
+    /// <response code="400">Invalid request or no active session.</response>
+    /// <response code="401">User not authenticated.</response>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<VoteResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<VoteResultDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<VoteResultDto>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<VoteResultDto>>> SubmitVote([FromBody] SubmitVoteRequest request)
     {
         var userId = GetUserId();
@@ -44,7 +55,12 @@ public class VotesController : ControllerBase
     /// <summary>
     /// Get all matches (mutual likes) for the current session.
     /// </summary>
+    /// <returns>List of names both users have liked.</returns>
+    /// <response code="200">Matches retrieved successfully.</response>
+    /// <response code="401">User not authenticated.</response>
     [HttpGet("matches")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<MatchDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<MatchDto>>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<IEnumerable<MatchDto>>>> GetMatches()
     {
         var userId = GetUserId();
@@ -58,7 +74,12 @@ public class VotesController : ControllerBase
     /// <summary>
     /// Get the count of matches for the current session.
     /// </summary>
+    /// <returns>Number of mutual likes.</returns>
+    /// <response code="200">Match count retrieved successfully.</response>
+    /// <response code="401">User not authenticated.</response>
     [HttpGet("matches/count")]
+    [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<int>>> GetMatchCount()
     {
         var userId = GetUserId();
@@ -72,7 +93,12 @@ public class VotesController : ControllerBase
     /// <summary>
     /// Get all votes by the current user in their active session.
     /// </summary>
+    /// <returns>List of all votes submitted by the user.</returns>
+    /// <response code="200">Votes retrieved successfully.</response>
+    /// <response code="401">User not authenticated.</response>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<VoteDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<VoteDto>>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<IEnumerable<VoteDto>>>> GetVotes()
     {
         var userId = GetUserId();
@@ -86,7 +112,12 @@ public class VotesController : ControllerBase
     /// <summary>
     /// Get voting statistics for the current session.
     /// </summary>
+    /// <returns>Statistics including like/dislike counts, match count, and remaining names.</returns>
+    /// <response code="200">Stats retrieved successfully.</response>
+    /// <response code="401">User not authenticated.</response>
     [HttpGet("stats")]
+    [ProducesResponseType(typeof(ApiResponse<VoteStatsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<VoteStatsDto>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<VoteStatsDto>>> GetStats()
     {
         var userId = GetUserId();

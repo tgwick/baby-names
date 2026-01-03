@@ -148,43 +148,55 @@ Tables:
 
 ---
 
-## Phase 7: Conflict Resolution
+## Phase 7: Conflict Resolution ✅
 
 ### 7.1 Backend - Conflicts
-- [ ] GET `/api/conflicts` - Names I liked that partner disliked
-- [ ] POST `/api/conflicts/{nameId}/clear` - Partner clears their dislike
+- [x] GET `/api/conflicts` - Names I liked that partner disliked (and vice versa)
+- [x] POST `/api/conflicts/{nameId}/clear` - Partner clears their dislike
 
 ### 7.2 Frontend - Conflict View
-- [ ] Conflict list page (names with conflict status)
-- [ ] "Clear Dislike" action for the partner who disliked
-- [ ] Visual distinction between my-likes-their-dislikes vs their-likes-my-dislikes
+- [x] Conflict list page (ConflictsView.vue)
+- [x] "Clear Dislike" action ("Give it a try" button) for names partner disliked
+- [x] Visual distinction between my-likes-their-dislikes vs their-likes-my-dislikes
+- [x] Conflict count badge in navigation
 
-**Deliverable:** Users can see and resolve conflicts, cleared names return to voting pool
+**Deliverable:** Users can see and resolve conflicts, cleared names return to voting pool ✅
 
 ---
 
-## Phase 8: Polish & Production Readiness
+## Phase 8: Polish & Production Readiness ✅
 
 ### 8.1 UX Enhancements
-- [ ] Responsive design audit
-- [ ] Loading states and error handling
-- [ ] Empty states
-- [ ] Accessibility (a11y) review
+- [x] Responsive design audit (mobile-first with 44px touch targets, responsive text/spacing)
+- [x] Loading states and error handling (added to SwipeView, MatchesView, API error extraction utility)
+- [x] Empty states (verified in all views)
+- [x] Accessibility (a11y) review (focus styles, keyboard navigation, aria-live, aria-labels)
 
 ### 8.2 Backend Hardening
-- [ ] Rate limiting
-- [ ] Input validation
-- [ ] Logging and monitoring setup
-- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Rate limiting (skipped for MVP)
+- [x] Input validation (DTOs with DataAnnotations, service-level parameter validation)
+- [x] Logging and monitoring setup (request logging middleware, health checks at /health, /health/ready, /health/live)
+- [x] API documentation (Swagger/OpenAPI with XML comments, response types, controller descriptions)
 
-### 8.3 Deployment
+**Deliverable:** Production-ready, polished application ✅
+
+---
+
+## Phase 9: Azure Deployment & CI/CD
+
+### 9.1 Infrastructure Setup
 - [ ] Azure App Service setup for backend
 - [ ] Azure Static Web Apps for frontend
 - [ ] Database provisioning (Azure PostgreSQL)
-- [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Environment configuration (dev/staging/prod)
 
-**Deliverable:** Production-ready application deployed to Azure
+### 9.2 CI/CD Pipeline
+- [ ] GitHub Actions workflow for backend
+- [ ] GitHub Actions workflow for frontend
+- [ ] Automated testing in pipeline
+- [ ] Automated deployment on merge to main
+
+**Deliverable:** Application deployed to Azure with automated CI/CD
 
 ---
 
@@ -233,7 +245,9 @@ Phase 6 (Matching)
     ↓
 Phase 7 (Conflicts)
     ↓
-Phase 8 (Polish & Deploy)
+Phase 8 (Polish)
+    ↓
+Phase 9 (Deploy)
 ```
 
 ---

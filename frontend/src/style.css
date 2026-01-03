@@ -104,6 +104,11 @@ body {
   transform: translateY(0);
 }
 
+.btn-primary:focus-visible {
+  outline: 3px solid var(--color-peach);
+  outline-offset: 2px;
+}
+
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -131,6 +136,11 @@ body {
   background: var(--color-blush);
   border-color: var(--color-peach);
   transform: translateY(-1px);
+}
+
+.btn-secondary:focus-visible {
+  outline: 3px solid var(--color-coral);
+  outline-offset: 2px;
 }
 
 /* Floating animation for waiting state */
