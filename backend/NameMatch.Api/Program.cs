@@ -85,6 +85,8 @@ builder.Services.AddAuthentication(options =>
 // Services
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<INameService, NameService>();
+builder.Services.AddScoped<IDataSeeder, DataSeeder>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -99,6 +101,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Seed data on startup
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
+    await seeder.SeedNamesAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

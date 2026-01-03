@@ -91,19 +91,19 @@ Tables:
 
 ---
 
-## Phase 4: Name Data Import
+## Phase 4: Name Data Import ✅
 
 ### 4.1 Data Preparation
-- [ ] Obtain SSA baby names dataset (last 100 years)
-- [ ] Create data transformation script (normalize, assign gender, calculate popularity)
-- [ ] Create seed script for database population
+- [x] Obtain SSA baby names dataset (last 100 years)
+- [x] Create data transformation script (normalize, assign gender, calculate popularity)
+- [x] Create seed script for database population
 
 ### 4.2 Backend - Names API
-- [ ] GET `/api/names/next` - Fetch random unvoted name for current user's session
-- [ ] Include gender filtering based on session settings
-- [ ] Track "seen" state per user
+- [x] GET `/api/names/next` - Fetch random unvoted name for current user's session
+- [x] Include gender filtering based on session settings
+- [x] Track "seen" state per user
 
-**Deliverable:** Database seeded with ~10,000+ names, API returns random unvoted names
+**Deliverable:** Database seeded with ~3,300 names (1970+), API returns random unvoted names ✅
 
 ---
 
