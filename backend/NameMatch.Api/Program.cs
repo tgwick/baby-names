@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using NameMatch.Application.Interfaces;
 using NameMatch.Infrastructure.Data;
 using NameMatch.Infrastructure.Identity;
+using NameMatch.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,6 +81,9 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 });
+
+// Services
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 // CORS
 builder.Services.AddCors(options =>

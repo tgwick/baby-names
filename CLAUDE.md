@@ -17,7 +17,7 @@ NameMatch is a collaborative web app for couples to discover and agree on baby n
 ### Backend (from `backend/` directory)
 ```bash
 dotnet build NameMatch.sln          # Build solution
-dotnet run --project NameMatch.Api  # Run API (default: https://localhost:5001)
+dotnet run --project NameMatch.Api  # Run API (default: http://localhost:5001)
 dotnet ef migrations add <Name> --project NameMatch.Infrastructure --startup-project NameMatch.Api
 dotnet ef database update --project NameMatch.Infrastructure --startup-project NameMatch.Api
 ```
@@ -37,7 +37,7 @@ npm run preview    # Preview production build
 - **NameMatch.Api** - Controllers, Program.cs (DI setup, middleware). References Application + Infrastructure.
 - **NameMatch.Application** - DTOs, service interfaces, business logic. References Domain.
 - **NameMatch.Domain** - Entities (`Name`, `Session`, `Vote`), Enums (`Gender`, `VoteType`, `SessionStatus`). No dependencies.
-- **NameMatch.Infrastructure** - EF Core `ApplicationDbContext`, `ApplicationUser` (Identity), external services. References Application + Domain.
+- **NameMatch.Infrastructure** - EF Core `ApplicationDbContext`, `ApplicationUser` (Identity), services. References Application + Domain.
 
 ### Frontend Structure
 
@@ -48,23 +48,34 @@ npm run preview    # Preview production build
 - `src/components/` - Reusable components
 - `src/types/` - TypeScript interfaces
 
-### Key Patterns
+## API Endpoints
+
+### Auth
+- `POST /api/auth/register` - Register with email/password/displayName
+- `POST /api/auth/login` - Login, returns JWT token
+- `GET /api/auth/me` - Get current user (requires auth)
+
+### Health
+- `GET /api/health` - Health check
+
+## Key Patterns
 
 - API responses use `ApiResponse<T>` wrapper with `Success`, `Data`, `Errors` fields
-- Frontend proxies `/api` requests to backend via Vite config
+- Frontend proxies `/api` requests to backend via Vite config (port 5001)
 - Auth tokens stored in localStorage, attached via Axios interceptor
 - Router guards redirect unauthenticated users to `/login`
 
-## Database Schema
+## Database
 
-- **Users** - ASP.NET Identity tables
-- **Sessions** - Links two users with JoinCode/PartnerLink, stores target Gender
+PostgreSQL with tables:
+- **AspNetUsers** - ASP.NET Identity (includes DisplayName, CreatedAt)
+- **Sessions** - Links two users with JoinCode/PartnerLink, stores TargetGender
 - **Names** - Baby names with Gender, PopularityScore, Origin
 - **Votes** - User votes (Like/Dislike) on names within a session
 
 ## Configuration
 
 Backend config in `appsettings.json`:
-- `ConnectionStrings:DefaultConnection` - PostgreSQL connection
-- `Jwt:Key/Issuer/Audience` - JWT settings
+- `ConnectionStrings:DefaultConnection` - PostgreSQL (default: localhost:5432)
+- `Jwt:Key/Issuer/Audience/ExpiryInMinutes` - JWT settings
 - `Cors:AllowedOrigins` - Allowed frontend origins
