@@ -66,7 +66,7 @@ test.describe('Authentication Flow', () => {
       await page.getByRole('button', { name: /sign in/i }).click()
 
       // Wait for error message (API might return various error formats)
-      await expect(page.locator('.bg-red-50')).toBeVisible({ timeout: 10000 })
+      await expect(page.locator('.error-message')).toBeVisible({ timeout: 10000 })
     })
 
     test('should navigate to register page via link', async ({ page }) => {
