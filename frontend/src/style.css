@@ -382,3 +382,74 @@ body {
   color: #C62828;
   font-size: 0.875rem;
 }
+
+/* Form input styling */
+.form-input {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--color-cream);
+  border: 2px solid var(--color-peach-light);
+  border-radius: 14px;
+  color: var(--color-warm-gray);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-coral);
+  box-shadow: 0 0 0 4px rgba(255, 123, 107, 0.12);
+  background: var(--color-warm-white);
+}
+
+.form-input::placeholder {
+  color: var(--color-warm-gray-light);
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-warm-gray);
+  margin-bottom: 8px;
+}
+
+/* Feature card for landing page */
+.feature-card {
+  background: var(--gradient-card);
+  border-radius: 20px;
+  padding: 28px 24px;
+  border: 1px solid rgba(255, 173, 159, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 24px -8px rgba(107, 94, 87, 0.12),
+    0 4px 8px -2px rgba(255, 123, 107, 0.08);
+}
+
+.feature-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+/* Auth link styling */
+.auth-link {
+  color: var(--color-coral);
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.auth-link:hover {
+  color: var(--color-coral-dark);
+  text-decoration: underline;
+}
