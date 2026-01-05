@@ -4,6 +4,7 @@ backend/**/obj/
 backend/**/.vs/
 backend/**/*.user
 backend/**/*.suo
+backend/**/TestResults/
 backend/**/appsettings.*.json
 !backend/**/appsettings.json
 !backend/**/appsettings.Development.json
@@ -12,6 +13,13 @@ backend/**/appsettings.*.json
 frontend/node_modules/
 frontend/dist/
 frontend/*.local
+frontend/coverage/
+
+# Playwright
+frontend/.playwright/
+frontend/playwright-report/
+frontend/test-results/
+frontend/playwright/.cache/
 
 # IDE
 .idea/
@@ -32,3 +40,16 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Docker
+docker-compose.override.local.yml
+
+# Infrastructure secrets (never commit)
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# Azure
+.azure/

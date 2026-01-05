@@ -14,6 +14,16 @@ using NameMatch.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Build connection string from environment variables if password is provided separately
+// This supports Azure Container Apps secret injection
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dbPasswordFromEnv = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection__Password");
+if (!string.IsNullOrEmpty(dbPasswordFromEnv) && connectionString != null)
+{
+    connectionString = connectionString.Replace("Password=placeholder", $"Password={dbPasswordFromEnv}");
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+}
+
 // Configure logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
