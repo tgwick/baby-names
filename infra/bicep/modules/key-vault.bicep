@@ -12,8 +12,8 @@ param postgresPassword string
 @secure()
 param jwtKey string
 
-@description('Enable purge protection')
-param enablePurgeProtection bool = false
+@description('Enable purge protection (once enabled, cannot be disabled)')
+param enablePurgeProtection bool = true
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: name

@@ -22,6 +22,9 @@ param postgresAdminPassword string
 @secure()
 param jwtKey string
 
+@description('Location for PostgreSQL (some subscriptions have regional restrictions)')
+param postgresLocation string = ''
+
 @description('Backend image tag')
 param backendImageTag string = 'latest'
 
@@ -45,6 +48,7 @@ var frontendAppName = '${projectName}-${environment}-web'
 
 // Environment-specific settings
 var isProd = environment == 'prod'
+var effectivePostgresLocation = empty(postgresLocation) ? location : postgresLocation
 var postgresSku = isProd ? 'Standard_D2ds_v5' : 'Standard_B1ms'
 var postgresStorage = isProd ? 64 : 32
 var containerAppsCpu = isProd ? '0.5' : '0.25'
@@ -104,7 +108,7 @@ module keyVault 'modules/key-vault.bicep' = {
     location: location
     postgresPassword: postgresAdminPassword
     jwtKey: jwtKey
-    enablePurgeProtection: isProd
+    enablePurgeProtection: true // Once enabled, cannot be disabled
   }
 }
 
@@ -131,7 +135,7 @@ module postgres 'modules/postgresql.bicep' = {
   scope: rg
   params: {
     name: postgresServerName
-    location: location
+    location: effectivePostgresLocation
     administratorPassword: postgresAdminPassword
     skuName: postgresSku
     storageSizeGB: postgresStorage

@@ -22,6 +22,11 @@ on:
         required: false
         default: 'eastus'
         type: string
+      postgresLocation:
+        description: 'PostgreSQL location (leave empty to use main location, some subscriptions have regional restrictions)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   id-token: write
@@ -64,7 +69,8 @@ jobs:
             --parameters environment=${{ github.event.inputs.environment }} \
             --parameters location=${{ github.event.inputs.location }} \
             --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-            --parameters jwtKey="${{ secrets.JWT_KEY }}"
+            --parameters jwtKey="${{ secrets.JWT_KEY }}" \
+            --parameters postgresLocation="${{ github.event.inputs.postgresLocation }}"
 
       - name: Deploy Infrastructure
         if: github.event.inputs.action == 'deploy'
@@ -78,6 +84,7 @@ jobs:
             --parameters location=${{ github.event.inputs.location }} \
             --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
             --parameters jwtKey="${{ secrets.JWT_KEY }}" \
+            --parameters postgresLocation="${{ github.event.inputs.postgresLocation }}" \
             --output table
 
       - name: Get Deployment Outputs
