@@ -4,8 +4,8 @@ param name string
 @description('Location for the resource')
 param location string
 
-@description('Log Analytics workspace ID')
-param logAnalyticsWorkspaceId string
+@description('Log Analytics workspace customer ID (GUID)')
+param logAnalyticsCustomerId string
 
 @description('Log Analytics workspace key')
 @secure()
@@ -18,7 +18,7 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: split(logAnalyticsWorkspaceId, '/')[8]
+        customerId: logAnalyticsCustomerId
         sharedKey: logAnalyticsWorkspaceKey
       }
     }

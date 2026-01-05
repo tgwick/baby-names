@@ -150,7 +150,7 @@ module containerEnv 'modules/container-apps-environment.bicep' = {
   params: {
     name: containerEnvName
     location: location
-    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    logAnalyticsCustomerId: logAnalytics.outputs.customerId
     logAnalyticsWorkspaceKey: logAnalytics.outputs.primaryKey
   }
 }
@@ -177,7 +177,6 @@ module backendApp 'modules/container-app-backend.bicep' = {
     frontendFqdn: '' // Will be updated after frontend is created
     environment: environment
   }
-  dependsOn: [acr, postgres, keyVault]
 }
 
 module frontendApp 'modules/container-app-frontend.bicep' = {
@@ -196,7 +195,6 @@ module frontendApp 'modules/container-app-frontend.bicep' = {
     maxReplicas: containerAppsMaxReplicas
     apiUrl: 'https://${backendApp.outputs.fqdn}'
   }
-  dependsOn: [acr, backendApp]
 }
 
 // ============================================
@@ -207,20 +205,18 @@ module backendAcrPull 'modules/acr-role-assignment.bicep' = {
   name: 'backendAcrPull-${environment}'
   scope: rg
   params: {
-    acrName: acrName
+    acrName: acr.outputs.acrName
     principalId: backendApp.outputs.principalId
   }
-  dependsOn: [acr, backendApp]
 }
 
 module frontendAcrPull 'modules/acr-role-assignment.bicep' = {
   name: 'frontendAcrPull-${environment}'
   scope: rg
   params: {
-    acrName: acrName
+    acrName: acr.outputs.acrName
     principalId: frontendApp.outputs.principalId
   }
-  dependsOn: [acr, frontendApp]
 }
 
 // ============================================

@@ -26,4 +26,6 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 
 output workspaceId string = workspace.id
 output customerId string = workspace.properties.customerId
-output primaryKey string = listKeys(workspace.id, '2023-09-01').primarySharedKey
+
+#disable-next-line outputs-should-not-contain-secrets
+output primaryKey string = workspace.listKeys().primarySharedKey
