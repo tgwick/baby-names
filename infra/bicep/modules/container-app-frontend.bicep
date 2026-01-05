@@ -75,7 +75,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               value: apiUrl
             }
           ]
-          probes: [
+          probes: usePlaceholderImage ? [] : [
             {
               type: 'Liveness'
               httpGet: {

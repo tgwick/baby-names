@@ -145,7 +145,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               value: appInsightsConnectionString
             }
           ]
-          probes: [
+          probes: usePlaceholderImage ? [] : [
             {
               type: 'Liveness'
               httpGet: {
