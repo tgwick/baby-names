@@ -17,36 +17,54 @@ A collaborative web app for couples to discover and agree on baby names through 
 | Backend | .NET 8, ASP.NET Core Identity, Entity Framework Core |
 | Database | PostgreSQL |
 | Auth | JWT tokens |
+| Infrastructure | Azure Container Apps, Bicep IaC |
 
-## Getting Started
+## Quick Start (Docker)
+
+The easiest way to run the full stack:
+
+```bash
+# Start all services (PostgreSQL, backend, frontend)
+docker compose up --build
+
+# Access the app
+# Frontend: http://localhost:5173
+# Backend:  http://localhost:5001
+# Swagger:  http://localhost:5001/swagger
+```
+
+### Development with Hot Reload
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+### Stop Services
+
+```bash
+docker compose down        # Stop containers
+docker compose down -v     # Stop and reset database
+```
+
+## Manual Setup
 
 ### Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- [Node.js 18+](https://nodejs.org/)
-- [PostgreSQL](https://www.postgresql.org/) (or Docker)
+- [Node.js 22+](https://nodejs.org/)
+- [PostgreSQL](https://www.postgresql.org/) (or use Docker)
 
-### Database Setup
+### Database
 
 Start PostgreSQL with Docker:
 ```bash
-docker run -d --name namematch-db \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=namematch_dev \
-  -p 5432:5432 \
-  postgres:16
+docker compose up postgres
 ```
 
 ### Backend
 
 ```bash
 cd backend
-
-# Apply database migrations
-dotnet ef database update --project NameMatch.Infrastructure --startup-project NameMatch.Api
-
-# Run the API
 dotnet run --project NameMatch.Api
 ```
 
@@ -56,11 +74,7 @@ API runs at http://localhost:5001. Swagger UI available at http://localhost:5001
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start dev server
 npm run dev
 ```
 
@@ -69,13 +83,13 @@ App runs at http://localhost:5173.
 ## Project Structure
 
 ```
-baby-names/
+namematch/
 ├── backend/
 │   ├── NameMatch.Api/            # Web API, controllers
 │   ├── NameMatch.Application/    # DTOs, interfaces, business logic
 │   ├── NameMatch.Domain/         # Entities, enums
 │   ├── NameMatch.Infrastructure/ # EF Core, Identity, services
-│   └── NameMatch.sln
+│   └── NameMatch.Tests/          # Unit tests
 ├── frontend/
 │   └── src/
 │       ├── components/           # Reusable Vue components
@@ -84,8 +98,12 @@ baby-names/
 │       ├── services/             # API client
 │       ├── router/               # Vue Router config
 │       └── types/                # TypeScript types
-└── data/
-    └── ssa-names/                # SSA name data (future)
+├── infra/
+│   ├── bicep/                    # Azure Bicep IaC
+│   └── scripts/                  # Deployment scripts
+├── .github/workflows/            # CI/CD pipelines
+├── docker-compose.yml            # Production-like Docker setup
+└── docker-compose.dev.yml        # Development with hot reload
 ```
 
 ## API Endpoints
@@ -104,25 +122,48 @@ baby-names/
 | POST | `/api/sessions/join` | Join via code |
 | GET | `/api/sessions/join/{link}` | Join via partner link |
 | GET | `/api/sessions/current` | Get active session |
-| GET | `/api/sessions/{id}` | Get session by ID |
+
+### Names & Voting
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/names/next?count=N` | Get N unvoted names |
+| POST | `/api/votes` | Submit vote |
+| GET | `/api/votes/matches` | Get mutual likes |
+| GET | `/api/votes/stats` | Voting statistics |
+
+### Conflicts
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/conflicts` | Get voting conflicts |
+| POST | `/api/conflicts/{nameId}/clear` | Clear dislike |
 
 ### Health
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/health` | Health check |
+| GET | `/health` | Full health check |
+| GET | `/health/live` | Liveness probe |
+| GET | `/health/ready` | Readiness probe |
 
-## Development Phases
+## Testing
 
-See [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) for the full roadmap.
+```bash
+# Backend unit tests
+cd backend && dotnet test
 
-- [x] Phase 1: Project Foundation
-- [x] Phase 2: Authentication
-- [x] Phase 3: Session & Partner Linking
-- [ ] Phase 4: Name Data Import
-- [ ] Phase 5: Voting Engine
-- [ ] Phase 6: Matching
-- [ ] Phase 7: Conflict Resolution
-- [ ] Phase 8: Polish & Deploy
+# Frontend unit tests
+cd frontend && npm run test:run
+
+# E2E tests (requires running backend)
+cd frontend && npm run e2e
+```
+
+## Infrastructure
+
+See [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) for:
+- Azure deployment guide
+- CI/CD pipeline documentation
+- Bicep module reference
+- Troubleshooting guide
 
 ## License
 

@@ -14,6 +14,17 @@ NameMatch is a collaborative web app for couples to discover and agree on baby n
 
 ## Commands
 
+### Docker (Recommended - from project root)
+```bash
+docker compose up --build           # Start all services (PostgreSQL, backend, frontend)
+docker compose down                 # Stop all containers
+docker compose down -v              # Stop and reset database
+docker compose logs -f backend      # View backend logs
+
+# Development with hot reload
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
 ### Backend (from `backend/` directory)
 ```bash
 dotnet build NameMatch.sln          # Build solution
@@ -84,9 +95,9 @@ npm run e2e:ui     # Run Playwright with interactive UI
 - `POST /api/conflicts/{nameId}/clear` - Clear your dislike on a name
 
 ### Health
-- `GET /api/health` - Combined health check
-- `GET /api/health/ready` - Readiness probe (includes DB check)
-- `GET /api/health/live` - Liveness probe
+- `GET /health` - Full health check with database status
+- `GET /health/ready` - Readiness probe (checks dependencies)
+- `GET /health/live` - Liveness probe (always healthy)
 
 ## Key Patterns
 
