@@ -22,8 +22,7 @@ COPY NameMatch.Api/ ./NameMatch.Api/
 # Build and publish release
 RUN dotnet publish NameMatch.Api/NameMatch.Api.csproj \
     -c Release \
-    -o /app/publish \
-    --no-restore
+    -o /app/publish
 
 # ============================================
 # Stage 2: Runtime
