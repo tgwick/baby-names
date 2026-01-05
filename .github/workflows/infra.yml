@@ -23,9 +23,9 @@ on:
         default: 'eastus'
         type: string
       postgresLocation:
-        description: 'PostgreSQL location (leave empty to use main location, some subscriptions have regional restrictions)'
+        description: 'PostgreSQL location (some subscriptions have regional restrictions)'
         required: false
-        default: ''
+        default: 'westcentralus'
         type: string
 
 permissions:

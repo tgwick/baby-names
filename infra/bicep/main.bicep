@@ -23,7 +23,7 @@ param postgresAdminPassword string
 param jwtKey string
 
 @description('Location for PostgreSQL (some subscriptions have regional restrictions)')
-param postgresLocation string = ''
+param postgresLocation string = 'westcentralus'
 
 @description('Backend image tag')
 param backendImageTag string = 'latest'
