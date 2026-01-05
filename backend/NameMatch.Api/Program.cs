@@ -14,6 +14,16 @@ using NameMatch.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Build connection string from environment variables if password is provided separately
+// This supports Azure Container Apps secret injection
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dbPasswordFromEnv = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection__Password");
+if (!string.IsNullOrEmpty(dbPasswordFromEnv) && connectionString != null)
+{
+    connectionString = connectionString.Replace("Password=placeholder", $"Password={dbPasswordFromEnv}");
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+}
+
 // Configure logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -177,11 +187,26 @@ app.Use(async (context, next) =>
     }
 });
 
-// Seed data on startup
+// Apply migrations and seed data on startup
 using (var scope = app.Services.CreateScope())
 {
-    var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
-    await seeder.SeedNamesAsync();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    try
+    {
+        logger.LogInformation("Applying database migrations...");
+        await dbContext.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
+
+        var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
+        await seeder.SeedNamesAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        throw;
+    }
 }
 
 // Configure the HTTP request pipeline.

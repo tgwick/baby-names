@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE and editors
+.idea
+.vscode
+*.swp
+*.swo
+*.sublime-*
+
+# Backend build artifacts
+backend/**/bin
+backend/**/obj
+backend/**/.vs
+backend/**/TestResults
+
+# Backend tests (build in CI, not in production image)
+backend/NameMatch.Tests
+
+# Frontend build artifacts
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/.playwright
+frontend/playwright-report
+frontend/test-results
+
+# Infrastructure (not needed in app containers)
+infra/
+.github/
+
+# Documentation
+*.md
+!backend/README.md
+!frontend/README.md
+
+# Environment files (secrets)
+.env
+.env.*
+*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,116 @@
+name: Infrastructure Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      action:
+        description: 'Deployment action'
+        required: true
+        type: choice
+        options:
+          - plan
+          - deploy
+      location:
+        description: 'Azure region'
+        required: false
+        default: 'eastus'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # ============================================
+  # Infrastructure Deployment
+  # ============================================
+  deploy-infrastructure:
+    name: ${{ github.event.inputs.action == 'plan' && 'Plan' || 'Deploy' }} - ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate Bicep templates
+        run: |
+          echo "Validating Bicep templates..."
+          az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+          echo "Bicep templates are valid!"
+
+      - name: What-If (Plan)
+        if: github.event.inputs.action == 'plan'
+        run: |
+          echo "Running what-if deployment preview..."
+          az deployment sub what-if \
+            --name "namematch-${{ github.event.inputs.environment }}-${{ github.run_number }}" \
+            --location ${{ github.event.inputs.location }} \
+            --template-file infra/bicep/main.bicep \
+            --parameters environment=${{ github.event.inputs.environment }} \
+            --parameters location=${{ github.event.inputs.location }} \
+            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+            --parameters jwtKey="${{ secrets.JWT_KEY }}"
+
+      - name: Deploy Infrastructure
+        if: github.event.inputs.action == 'deploy'
+        run: |
+          echo "Deploying infrastructure..."
+          az deployment sub create \
+            --name "namematch-${{ github.event.inputs.environment }}-${{ github.run_number }}" \
+            --location ${{ github.event.inputs.location }} \
+            --template-file infra/bicep/main.bicep \
+            --parameters environment=${{ github.event.inputs.environment }} \
+            --parameters location=${{ github.event.inputs.location }} \
+            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+            --parameters jwtKey="${{ secrets.JWT_KEY }}" \
+            --output table
+
+      - name: Get Deployment Outputs
+        if: github.event.inputs.action == 'deploy'
+        id: outputs
+        run: |
+          DEPLOYMENT_NAME="namematch-${{ github.event.inputs.environment }}-${{ github.run_number }}"
+
+          BACKEND_URL=$(az deployment sub show --name "$DEPLOYMENT_NAME" --query 'properties.outputs.backendUrl.value' -o tsv)
+          FRONTEND_URL=$(az deployment sub show --name "$DEPLOYMENT_NAME" --query 'properties.outputs.frontendUrl.value' -o tsv)
+          ACR_LOGIN=$(az deployment sub show --name "$DEPLOYMENT_NAME" --query 'properties.outputs.acrLoginServer.value' -o tsv)
+          RG_NAME=$(az deployment sub show --name "$DEPLOYMENT_NAME" --query 'properties.outputs.resourceGroupName.value' -o tsv)
+
+          echo "backend-url=${BACKEND_URL}" >> $GITHUB_OUTPUT
+          echo "frontend-url=${FRONTEND_URL}" >> $GITHUB_OUTPUT
+          echo "acr-login=${ACR_LOGIN}" >> $GITHUB_OUTPUT
+          echo "resource-group=${RG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Deployment Summary
+        if: github.event.inputs.action == 'deploy'
+        run: |
+          echo "## Infrastructure Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource Group | ${{ steps.outputs.outputs.resource-group }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ACR Login Server | ${{ steps.outputs.outputs.acr-login }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend URL | ${{ steps.outputs.outputs.backend-url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend URL | ${{ steps.outputs.outputs.frontend-url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Push Docker images to ACR" >> $GITHUB_STEP_SUMMARY
+          echo "2. Run database migrations" >> $GITHUB_STEP_SUMMARY
+          echo "3. Seed initial data" >> $GITHUB_STEP_SUMMARY
