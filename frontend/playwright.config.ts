@@ -40,13 +40,13 @@ export default defineConfig({
     {
       command: 'dotnet run --project ../backend/NameMatch.Api',
       url: 'http://localhost:5001/api/health',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !!process.env.CI, // In CI, reuse the server started by workflow
       timeout: 120 * 1000,
     },
     {
       command: 'npm run dev',
       url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !process.env.CI, // Locally reuse, in CI let Playwright start it
       timeout: 120 * 1000,
     },
   ],
