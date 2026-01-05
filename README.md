@@ -160,10 +160,15 @@ cd frontend && npm run e2e
 ## Infrastructure
 
 See [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) for:
-- Azure deployment guide
+- Architecture overview
 - CI/CD pipeline documentation
 - Bicep module reference
 - Troubleshooting guide
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for:
+- Step-by-step Azure deployment instructions
+- Service principal and GitHub secrets setup
+- Cost management tips
 
 ## License
 
