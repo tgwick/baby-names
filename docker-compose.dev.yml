@@ -1,5 +1,5 @@
 # Development overrides - enables hot reload
-# Usage: docker compose up (automatically uses both files)
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
   # Backend with hot reload using dotnet watch

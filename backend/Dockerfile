@@ -4,18 +4,20 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy solution and project files for layer caching
-COPY NameMatch.sln ./
+# Copy project files for layer caching (excluding tests)
 COPY NameMatch.Domain/NameMatch.Domain.csproj ./NameMatch.Domain/
 COPY NameMatch.Application/NameMatch.Application.csproj ./NameMatch.Application/
 COPY NameMatch.Infrastructure/NameMatch.Infrastructure.csproj ./NameMatch.Infrastructure/
 COPY NameMatch.Api/NameMatch.Api.csproj ./NameMatch.Api/
 
-# Restore dependencies (cached unless .csproj files change)
-RUN dotnet restore NameMatch.sln
+# Restore dependencies for API project (includes transitive dependencies)
+RUN dotnet restore NameMatch.Api/NameMatch.Api.csproj
 
-# Copy remaining source code
-COPY . .
+# Copy source code (excluding tests via .dockerignore)
+COPY NameMatch.Domain/ ./NameMatch.Domain/
+COPY NameMatch.Application/ ./NameMatch.Application/
+COPY NameMatch.Infrastructure/ ./NameMatch.Infrastructure/
+COPY NameMatch.Api/ ./NameMatch.Api/
 
 # Build and publish release
 RUN dotnet publish NameMatch.Api/NameMatch.Api.csproj \

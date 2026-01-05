@@ -90,8 +90,8 @@ docker compose up --build
 For development with live code reloading:
 
 ```bash
-# Start with hot reload (uses docker-compose.override.yml automatically)
-docker compose up
+# Start with hot reload (explicitly use dev config)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 # This enables:
 # - Backend: dotnet watch with live reload
