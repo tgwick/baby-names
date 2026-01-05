@@ -77,7 +77,7 @@ Run the entire stack in containers:
 
 ```bash
 # Start all services (PostgreSQL, backend, frontend)
-docker-compose up --build
+docker compose up --build
 
 # Access the app
 # Frontend: http://localhost:5173
@@ -91,7 +91,7 @@ For development with live code reloading:
 
 ```bash
 # Start with hot reload (uses docker-compose.override.yml automatically)
-docker-compose up
+docker compose up
 
 # This enables:
 # - Backend: dotnet watch with live reload
@@ -104,7 +104,7 @@ Run only PostgreSQL in Docker:
 
 ```bash
 # Start just the database
-docker-compose up postgres
+docker compose up postgres
 
 # In another terminal - run backend
 cd backend
@@ -120,10 +120,10 @@ npm run dev
 
 ```bash
 # Stop all containers
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (resets database)
-docker-compose down -v
+docker compose down -v
 ```
 
 ---
@@ -314,7 +314,7 @@ Or manually trigger the CD Dev workflow.
 
 ```bash
 # Build images without running
-docker-compose build
+docker compose build
 
 # Verify images were created
 docker images | grep namematch
@@ -324,10 +324,10 @@ docker images | grep namematch
 
 ```bash
 # Start the stack
-docker-compose up -d
+docker compose up -d
 
 # Wait for services to be healthy
-docker-compose ps
+docker compose ps
 
 # Test backend health
 curl http://localhost:5001/health
@@ -336,8 +336,8 @@ curl http://localhost:5001/health
 curl http://localhost:5173
 
 # View logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f frontend
 ```
 
 #### Run Backend Tests
@@ -411,25 +411,25 @@ open https://$FRONTEND_URL
 **Container won't start:**
 ```bash
 # Check logs
-docker-compose logs backend
-docker-compose logs frontend
+docker compose logs backend
+docker compose logs frontend
 
 # Rebuild from scratch
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up
+docker compose down -v
+docker compose build --no-cache
+docker compose up
 ```
 
 **Database connection failed:**
 ```bash
 # Ensure PostgreSQL is healthy
-docker-compose ps postgres
+docker compose ps postgres
 
 # Check PostgreSQL logs
-docker-compose logs postgres
+docker compose logs postgres
 
 # Connect directly to verify
-docker-compose exec postgres psql -U postgres -d namematch
+docker compose exec postgres psql -U postgres -d namematch
 ```
 
 ### Azure Deployment Issues
@@ -483,7 +483,7 @@ az role assignment list \
 **EF Core migrations not applied:**
 ```bash
 # Connect to the running backend container
-docker-compose exec backend sh
+docker compose exec backend sh
 
 # Apply migrations manually
 dotnet ef database update --project NameMatch.Infrastructure --startup-project NameMatch.Api
@@ -497,9 +497,9 @@ dotnet ef database update --project NameMatch.Infrastructure --startup-project N
 
 ```bash
 # Local Development
-docker-compose up                    # Start all services
-docker-compose down -v               # Stop and reset
-docker-compose logs -f backend       # View backend logs
+docker compose up                    # Start all services
+docker compose down -v               # Stop and reset
+docker compose logs -f backend       # View backend logs
 
 # Azure CLI
 az login                             # Login to Azure
