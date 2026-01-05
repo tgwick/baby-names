@@ -34,6 +34,17 @@ az ad sp create-for-rbac \
 | `tenantId` | `AZURE_TENANT_ID` |
 | `subscriptionId` | `AZURE_SUBSCRIPTION_ID` |
 
+### Grant Additional Permissions
+
+The service principal also needs "User Access Administrator" to create role assignments (for Key Vault access):
+
+```bash
+az role assignment create \
+  --assignee <CLIENT_ID> \
+  --role "User Access Administrator" \
+  --scope /subscriptions/<YOUR_SUBSCRIPTION_ID>
+```
+
 ---
 
 ## Step 2: Configure GitHub OIDC
@@ -152,7 +163,31 @@ git push origin infra
 
 ---
 
-## Step 6: Deploy Infrastructure
+## Step 6: Register Resource Providers
+
+Before deploying, ensure required resource providers are registered:
+
+```bash
+# Register Container Apps provider (required)
+az provider register -n Microsoft.App --wait
+
+# Verify registration
+az provider show -n Microsoft.App --query registrationState -o tsv
+```
+
+---
+
+## Step 7: Deploy Infrastructure
+
+### MSDN/Visual Studio Subscription Note
+
+MSDN and Visual Studio subscriptions have regional restrictions for PostgreSQL Flexible Server. Popular regions like `eastus`, `eastus2`, and `westus2` may be blocked.
+
+The infrastructure defaults to `westcentralus` for PostgreSQL, which is typically available for these subscriptions. You can override this with the `postgresLocation` parameter if needed.
+
+### Initial Deployment (Placeholder Images)
+
+The first infrastructure deployment uses placeholder container images since no application images exist in ACR yet. After pushing your images, subsequent CD deployments will use the real application.
 
 ### Option A: Via GitHub Actions (Recommended)
 
@@ -174,12 +209,13 @@ az deployment sub create \
   --template-file infra/bicep/main.bicep \
   --parameters environment=dev \
   --parameters postgresAdminPassword="<your-postgres-password>" \
-  --parameters jwtKey="<your-jwt-key>"
+  --parameters jwtKey="<your-jwt-key>" \
+  --parameters postgresLocation="westcentralus"
 ```
 
 ---
 
-## Step 7: Build and Push Docker Images
+## Step 8: Build and Push Docker Images
 
 After infrastructure is deployed, push Docker images to Azure Container Registry:
 
@@ -198,7 +234,7 @@ docker push namematchdevacr.azurecr.io/namematch-web:latest
 
 ---
 
-## Step 8: Verify Deployment
+## Step 9: Verify Deployment
 
 ```bash
 # Get the deployed URLs
@@ -217,7 +253,7 @@ curl https://$BACKEND_URL/health
 
 ---
 
-## Step 9: Enable CI/CD Auto-Deployment
+## Step 10: Enable CI/CD Auto-Deployment
 
 Once infrastructure exists, merge to `develop` to enable automatic deployments:
 
@@ -282,11 +318,29 @@ az role assignment list \
   -o table
 ```
 
+### Key Vault Purge Protection
+
+Key Vault has purge protection enabled (irreversible once set). If you delete the resource group, the Key Vault enters a soft-deleted state:
+
+```bash
+# List soft-deleted vaults
+az keyvault list-deleted --query "[?name=='namematch-dev-kv']" -o table
+
+# Recover the vault (if resource group exists)
+az keyvault recover --name namematch-dev-kv --location eastus --resource-group namematch-dev-rg
+
+# Or wait 7 days for automatic purge (retention period)
+```
+
 ### Delete and Recreate (Nuclear Option)
 
 ```bash
 # Delete the entire resource group
 az group delete --name namematch-dev-rg --yes --no-wait
+
+# If Key Vault was soft-deleted, recreate RG and recover it
+az group create --name namematch-dev-rg --location eastus
+az keyvault recover --name namematch-dev-kv --location eastus --resource-group namematch-dev-rg
 
 # Re-run infrastructure deployment
 ```
