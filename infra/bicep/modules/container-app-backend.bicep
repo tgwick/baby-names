@@ -83,7 +83,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
           maxAge: 3600
         }
       }
-      registries: [
+      registries: usePlaceholderImage ? [] : [
         {
           server: containerRegistryLoginServer
           identity: 'system'
