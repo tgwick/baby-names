@@ -16,6 +16,9 @@ param imageName string = 'namematch-web'
 @description('Image tag')
 param imageTag string = 'latest'
 
+@description('Use placeholder image for initial deployment')
+param usePlaceholderImage bool = true
+
 @description('CPU cores')
 param cpu string = '0.25'
 
@@ -30,6 +33,8 @@ param maxReplicas int = 3
 
 @description('Backend API URL')
 param apiUrl string
+
+var actualImage = usePlaceholderImage ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : '${containerRegistryLoginServer}/${imageName}:${imageTag}'
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
@@ -59,7 +64,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'web'
-          image: '${containerRegistryLoginServer}/${imageName}:${imageTag}'
+          image: actualImage
           resources: {
             cpu: json(cpu)
             memory: memory
