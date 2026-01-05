@@ -42,7 +42,7 @@ var keyVaultName = '${projectName}-${environment}-kv'
 var logAnalyticsName = '${projectName}-${environment}-logs'
 var appInsightsName = '${projectName}-${environment}-ai'
 var containerEnvName = '${projectName}-${environment}-env'
-var postgresServerName = '${projectName}-${environment}-pg'
+var postgresServerName = '${projectName}-${environment}-pgdb'
 var backendAppName = '${projectName}-${environment}-api'
 var frontendAppName = '${projectName}-${environment}-web'
 
