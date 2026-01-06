@@ -223,14 +223,16 @@ After infrastructure is deployed, push Docker images to Azure Container Registry
 # Login to Azure Container Registry
 az acr login --name namematchdevacr
 
-# Build and push backend
-docker build -t namematchdevacr.azurecr.io/namematch-api:latest ./backend
+# Build and push backend (use --platform for Apple Silicon Macs)
+docker build --platform linux/amd64 -t namematchdevacr.azurecr.io/namematch-api:latest ./backend
 docker push namematchdevacr.azurecr.io/namematch-api:latest
 
 # Build and push frontend
-docker build -t namematchdevacr.azurecr.io/namematch-web:latest ./frontend
+docker build --platform linux/amd64 -t namematchdevacr.azurecr.io/namematch-web:latest ./frontend
 docker push namematchdevacr.azurecr.io/namematch-web:latest
 ```
+
+> **Note:** The `--platform linux/amd64` flag is required when building on Apple Silicon (M1/M2/M3) Macs. Azure Container Apps runs on AMD64 architecture.
 
 ---
 
@@ -330,6 +332,30 @@ az keyvault list-deleted --query "[?name=='namematch-dev-kv']" -o table
 az keyvault recover --name namematch-dev-kv --location eastus --resource-group namematch-dev-rg
 
 # Or wait 7 days for automatic purge (retention period)
+```
+
+### Container Image Issues
+
+**"exec format error" in logs:**
+You built the image on Apple Silicon without `--platform linux/amd64`. Rebuild:
+```bash
+docker build --platform linux/amd64 --no-cache -t namematchdevacr.azurecr.io/namematch-api:latest ./backend
+docker push namematchdevacr.azurecr.io/namematch-api:latest
+az containerapp revision restart -n namematch-dev-api -g namematch-dev-rg --revision <revision-name>
+```
+
+**Container keeps restarting:**
+Check the logs for errors:
+```bash
+az containerapp logs show -n namematch-dev-api -g namematch-dev-rg --type console --tail 50
+```
+
+**ImagePullFailure:**
+Ensure ACR registry is configured for the container app:
+```bash
+az containerapp registry set -n namematch-dev-api -g namematch-dev-rg \
+  --server namematchdevacr.azurecr.io \
+  --identity system
 ```
 
 ### Delete and Recreate (Nuclear Option)
