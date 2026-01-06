@@ -41,11 +41,11 @@ RUN adduser -D -u 1000 nginxuser && \
     chown -R nginxuser:nginxuser /usr/share/nginx/html && \
     chown -R nginxuser:nginxuser /var/cache/nginx && \
     chown -R nginxuser:nginxuser /var/log/nginx && \
+    chown -R nginxuser:nginxuser /etc/nginx && \
     touch /var/run/nginx.pid && \
     chown nginxuser:nginxuser /var/run/nginx.pid && \
     mkdir -p /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
-    chown -R nginxuser:nginxuser /tmp && \
-    chown nginxuser:nginxuser /etc/nginx/nginx.conf.template
+    chown -R nginxuser:nginxuser /tmp
 
 USER nginxuser
 
