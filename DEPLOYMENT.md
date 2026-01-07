@@ -224,7 +224,8 @@ After infrastructure is deployed, push Docker images to Azure Container Registry
 az acr login --name namematchdevacr
 
 # Build and push backend (use --platform for Apple Silicon Macs)
-docker build --platform linux/amd64 -t namematchdevacr.azurecr.io/namematch-api:latest ./backend
+# Note: Build from project root to include seed data
+docker build --platform linux/amd64 -f backend/Dockerfile -t namematchdevacr.azurecr.io/namematch-api:latest .
 docker push namematchdevacr.azurecr.io/namematch-api:latest
 
 # Build and push frontend
@@ -339,7 +340,7 @@ az keyvault recover --name namematch-dev-kv --location eastus --resource-group n
 **"exec format error" in logs:**
 You built the image on Apple Silicon without `--platform linux/amd64`. Rebuild:
 ```bash
-docker build --platform linux/amd64 --no-cache -t namematchdevacr.azurecr.io/namematch-api:latest ./backend
+docker build --platform linux/amd64 --no-cache -f backend/Dockerfile -t namematchdevacr.azurecr.io/namematch-api:latest .
 docker push namematchdevacr.azurecr.io/namematch-api:latest
 az containerapp revision restart -n namematch-dev-api -g namematch-dev-rg --revision <revision-name>
 ```

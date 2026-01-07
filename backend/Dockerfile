@@ -5,19 +5,22 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project files for layer caching (excluding tests)
-COPY NameMatch.Domain/NameMatch.Domain.csproj ./NameMatch.Domain/
-COPY NameMatch.Application/NameMatch.Application.csproj ./NameMatch.Application/
-COPY NameMatch.Infrastructure/NameMatch.Infrastructure.csproj ./NameMatch.Infrastructure/
-COPY NameMatch.Api/NameMatch.Api.csproj ./NameMatch.Api/
+COPY backend/NameMatch.Domain/NameMatch.Domain.csproj ./NameMatch.Domain/
+COPY backend/NameMatch.Application/NameMatch.Application.csproj ./NameMatch.Application/
+COPY backend/NameMatch.Infrastructure/NameMatch.Infrastructure.csproj ./NameMatch.Infrastructure/
+COPY backend/NameMatch.Api/NameMatch.Api.csproj ./NameMatch.Api/
 
 # Restore dependencies for API project (includes transitive dependencies)
 RUN dotnet restore NameMatch.Api/NameMatch.Api.csproj
 
 # Copy source code (excluding tests via .dockerignore)
-COPY NameMatch.Domain/ ./NameMatch.Domain/
-COPY NameMatch.Application/ ./NameMatch.Application/
-COPY NameMatch.Infrastructure/ ./NameMatch.Infrastructure/
-COPY NameMatch.Api/ ./NameMatch.Api/
+COPY backend/NameMatch.Domain/ ./NameMatch.Domain/
+COPY backend/NameMatch.Application/ ./NameMatch.Application/
+COPY backend/NameMatch.Infrastructure/ ./NameMatch.Infrastructure/
+COPY backend/NameMatch.Api/ ./NameMatch.Api/
+
+# Copy seed data
+COPY data/ssa-names/processed-names.json ./data/processed-names.json
 
 # Build and publish release
 RUN dotnet publish NameMatch.Api/NameMatch.Api.csproj \
@@ -39,8 +42,11 @@ RUN adduser --disabled-password --gecos '' --uid 1000 appuser
 # Copy published application
 COPY --from=build /app/publish .
 
-# Create data directory and set permissions
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
+# Copy seed data for database initialization
+COPY --from=build /src/data/processed-names.json /app/data/processed-names.json
+
+# Set permissions
+RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
