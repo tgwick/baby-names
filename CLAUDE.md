@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-NameMatch is a collaborative web app for couples to discover and agree on baby names through a "Like/Dislike" voting system with matching. Two users link via a unique code, swipe through names, and see mutual likes as "matches."
+Hatch A Name (hatchaname.com) is a cozy web app for couples to discover baby names together. Two users link via a unique code, swipe through names, and when both love a name—it "hatches" as a match.
 
 ## Tech Stack
 

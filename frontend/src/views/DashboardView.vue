@@ -56,7 +56,7 @@ function goToMatches() {
         Welcome back{{ authStore.user?.displayName ? `, ${authStore.user.displayName}` : '' }}!
       </h1>
       <p class="text-sm sm:text-base text-[var(--color-warm-gray-light)] mt-1.5 sm:mt-2">
-        Let's find the perfect name together.
+        Let's hatch the perfect name together.
       </p>
     </div>
 
@@ -202,8 +202,8 @@ function goToMatches() {
         <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">💝</div>
         <p class="text-sm sm:text-base text-[var(--color-warm-gray-light)]">
           {{ sessionStore.hasSession && sessionStore.isActive
-            ? 'No matches yet. Start swiping to find names you both love!'
-            : 'Start a session to begin discovering the perfect name together.'
+            ? 'Your nest is empty—keep swiping to hatch your first match!'
+            : 'Build your nest to start hatching the perfect name together.'
           }}
         </p>
         <button

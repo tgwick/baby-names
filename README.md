@@ -1,12 +1,14 @@
-# NameMatch
+# Hatch A Name
 
-A collaborative web app for couples to discover and agree on baby names through a "Like/Dislike" voting system.
+🐣 A cozy way for couples to discover baby names together. Swipe through names—when you both love one, it hatches as a match!
+
+**Website:** [hatchaname.com](https://hatchaname.com)
 
 ## Features
 
-- **Partner Linking** - Create a session and share a code/link with your partner
+- **Build Your Nest** - Create a session and share a code/link with your partner
 - **Swipe Interface** - Like or dislike names one at a time
-- **Matching** - See names you both liked
+- **Watch Names Hatch** - See names you both loved as they hatch into matches
 - **Conflict Resolution** - Review names where you disagreed
 
 ## Tech Stack
@@ -83,7 +85,7 @@ App runs at http://localhost:5173.
 ## Project Structure
 
 ```
-namematch/
+hatchaname/
 ├── backend/
 │   ├── NameMatch.Api/            # Web API, controllers
 │   ├── NameMatch.Application/    # DTOs, interfaces, business logic

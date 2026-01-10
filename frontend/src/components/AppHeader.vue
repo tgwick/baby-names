@@ -53,10 +53,10 @@ watch(() => authStore.isAuthenticated, async (isAuth) => {
     <nav class="container mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
       <RouterLink to="/" class="flex items-center gap-2 group">
         <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[var(--color-coral)] to-[var(--color-peach)] flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-          <span class="text-base sm:text-lg">💕</span>
+          <span class="text-base sm:text-lg">🐣</span>
         </div>
         <span class="font-display text-xl sm:text-2xl font-semibold text-[var(--color-warm-gray)] hidden sm:block">
-          NameMatch
+          Hatch A Name
         </span>
       </RouterLink>
 
