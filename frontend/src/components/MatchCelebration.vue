@@ -17,21 +17,21 @@ const emit = defineEmits<{
         <!-- Confetti background -->
         <div class="confetti-container">
           <span v-for="i in 20" :key="i" class="confetti" :style="{ '--delay': `${i * 0.1}s`, '--x': `${Math.random() * 100}%` }">
-            {{ ['🎉', '💕', '✨', '🎊', '💗'][i % 5] }}
+            {{ ['🎉', '🐣', '✨', '🥚', '💕'][i % 5] }}
           </span>
         </div>
 
         <!-- Content -->
         <div class="relative z-10 text-center px-8 py-10">
-          <!-- Hearts animation -->
+          <!-- Hatch animation -->
           <div class="match-hearts mb-6">
-            <span class="heart heart-left animate-float">💗</span>
-            <span class="heart heart-center text-6xl">💕</span>
-            <span class="heart heart-right animate-float" style="animation-delay: 0.5s;">💗</span>
+            <span class="heart heart-left animate-float">🥚</span>
+            <span class="heart heart-center text-6xl">🐣</span>
+            <span class="heart heart-right animate-float" style="animation-delay: 0.5s;">🥚</span>
           </div>
 
           <h2 class="font-display text-4xl font-bold text-[var(--color-coral)] mb-2">
-            It's a Match!
+            It Hatched!
           </h2>
           <p class="text-[var(--color-warm-gray-light)] mb-6">
             You both love this name!

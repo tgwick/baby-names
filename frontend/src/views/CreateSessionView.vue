@@ -62,13 +62,13 @@ async function handleCreate() {
       <!-- Header -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--color-blush)] mb-4 animate-bounce-in">
-          <span class="text-3xl">✨</span>
+          <span class="text-3xl">🪺</span>
         </div>
         <h1 class="font-display text-3xl font-semibold text-[var(--color-warm-gray)] mb-2">
-          Start Your Journey
+          Build Your Nest
         </h1>
         <p class="text-[var(--color-warm-gray-light)]">
-          What kind of names would you like to explore?
+          What kind of names would you like to hatch?
         </p>
       </div>
 
@@ -129,7 +129,7 @@ async function handleCreate() {
         :disabled="loading || selectedGender === null"
         class="btn-primary w-full text-center"
       >
-        <span>{{ loading ? 'Creating your session...' : 'Create Session' }}</span>
+        <span>{{ loading ? 'Building your nest...' : 'Build Nest' }}</span>
       </button>
 
       <!-- Cancel Link -->

@@ -19,7 +19,7 @@ services:
   # Frontend with Vite dev server
   frontend:
     image: node:22-alpine
-    container_name: namematch-web-dev
+    container_name: hatchaname-web-dev
     working_dir: /app
     volumes:
       - ./frontend:/app

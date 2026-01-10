@@ -39,7 +39,7 @@ async function handleSubmit() {
           Welcome Back
         </h1>
         <p class="text-[var(--color-warm-gray-light)] mt-2">
-          Sign in to continue finding the perfect name
+          Sign in to continue hatching names
         </p>
       </div>
 

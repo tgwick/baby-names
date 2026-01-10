@@ -36,13 +36,13 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "NameMatch API",
+        Title = "Hatch A Name API",
         Version = "v1",
-        Description = "A collaborative web API for couples to discover and agree on baby names through a Like/Dislike voting system with matching.",
+        Description = "A cozy web API for couples to discover baby names together. Swipe through names—when you both love one, it hatches as a match!",
         Contact = new OpenApiContact
         {
-            Name = "NameMatch Team",
-            Email = "support@namematch.app"
+            Name = "Hatch A Name Team",
+            Email = "support@hatchaname.com"
         }
     });
 
