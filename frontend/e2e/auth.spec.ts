@@ -8,7 +8,7 @@ test.describe('Authentication Flow', () => {
     test('should display registration form', async ({ page }) => {
       await page.goto('/register')
 
-      await expect(page.getByRole('heading', { name: /create account/i })).toBeVisible()
+      await expect(page.getByRole('heading', { name: /create your nest/i })).toBeVisible()
       await expect(page.locator('#displayName')).toBeVisible()
       await expect(page.locator('#email')).toBeVisible()
       await expect(page.locator('#password')).toBeVisible()
@@ -76,7 +76,7 @@ test.describe('Authentication Flow', () => {
       await page.locator('p').getByRole('link', { name: /sign up/i }).click()
 
       await expect(page).toHaveURL('/register')
-      await expect(page.getByRole('heading', { name: /create account/i })).toBeVisible()
+      await expect(page.getByRole('heading', { name: /create your nest/i })).toBeVisible()
     })
   })
 
@@ -99,15 +99,15 @@ test.describe('Authentication Flow', () => {
     test('should display welcome message and CTA buttons', async ({ page }) => {
       await page.goto('/')
 
-      await expect(page.getByRole('heading', { name: /find the perfect baby name/i })).toBeVisible()
-      await expect(page.getByRole('link', { name: /get started/i })).toBeVisible()
+      await expect(page.getByRole('heading', { name: /your baby's name/i })).toBeVisible()
+      await expect(page.getByRole('link', { name: /start hatching/i })).toBeVisible()
       await expect(page.getByRole('link', { name: /sign in/i })).toBeVisible()
     })
 
     test('should navigate to register page from Get Started button', async ({ page }) => {
       await page.goto('/')
 
-      await page.getByRole('link', { name: /get started/i }).click()
+      await page.getByRole('link', { name: /start hatching/i }).click()
 
       await expect(page).toHaveURL('/register')
     })
