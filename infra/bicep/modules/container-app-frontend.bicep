@@ -34,7 +34,30 @@ param maxReplicas int = 3
 @description('Backend API URL')
 param apiUrl string
 
+@description('Custom domain hostnames (empty array to disable)')
+param customDomains array = []
+
+@description('Container Apps Environment name (for certificate references)')
+param containerAppsEnvironmentName string = ''
+
 var actualImage = usePlaceholderImage ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : '${containerRegistryLoginServer}/${imageName}:${imageTag}'
+
+// Create managed certificates for custom domains
+resource certificates 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' = [for domain in customDomains: {
+  name: '${containerAppsEnvironmentName}/cert-${replace(domain, '.', '-')}'
+  location: location
+  properties: {
+    subjectName: domain
+    domainControlValidation: 'CNAME'
+  }
+}]
+
+// Build custom domain bindings with certificate references
+var customDomainBindings = [for (domain, i) in customDomains: {
+  name: domain
+  bindingType: 'SniEnabled'
+  certificateId: certificates[i].id
+}]
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
@@ -52,6 +75,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 8080
         transport: 'http'
         allowInsecure: false
+        customDomains: customDomainBindings
       }
       // Always configure registry so app deployments can pull images
       registries: [

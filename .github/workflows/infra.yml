@@ -27,6 +27,11 @@ on:
         required: false
         default: 'westcentralus'
         type: string
+      enableCustomDomains:
+        description: 'Enable custom domains (requires DNS to be configured first)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   id-token: write
@@ -70,7 +75,8 @@ jobs:
             --parameters location=${{ github.event.inputs.location }} \
             --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
             --parameters jwtKey="${{ secrets.JWT_KEY }}" \
-            --parameters postgresLocation="${{ github.event.inputs.postgresLocation }}"
+            --parameters postgresLocation="${{ github.event.inputs.postgresLocation }}" \
+            --parameters enableCustomDomains=${{ github.event.inputs.enableCustomDomains }}
 
       - name: Deploy Infrastructure
         if: github.event.inputs.action == 'deploy'
@@ -85,6 +91,7 @@ jobs:
             --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
             --parameters jwtKey="${{ secrets.JWT_KEY }}" \
             --parameters postgresLocation="${{ github.event.inputs.postgresLocation }}" \
+            --parameters enableCustomDomains=${{ github.event.inputs.enableCustomDomains }} \
             --output table
 
       - name: Get Deployment Outputs

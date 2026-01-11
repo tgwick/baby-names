@@ -2,10 +2,20 @@
 
 This guide walks through configuring Cloudflare as the DNS provider for `hatchaname.com` (registered at Namecheap) and connecting it to Azure Container Apps.
 
+## Domain Structure
+
+| Environment | Domain | Target |
+|-------------|--------|--------|
+| **Production** | `hatchaname.com` | Frontend |
+| **Production** | `www.hatchaname.com` | Frontend |
+| **Production** | `api.hatchaname.com` | Backend API |
+| **Dev** | `dev.hatchaname.com` | Frontend |
+| **Dev** | `api-dev.hatchaname.com` | Backend API |
+
 ## Prerequisites
 
 - Domain registered at Namecheap: `hatchaname.com`
-- Azure Container Apps deployed (frontend and backend)
+- Azure Container Apps deployed (frontend and backend) for both dev and prod
 - Azure CLI installed and authenticated
 
 ---
@@ -71,71 +81,106 @@ lisa.ns.cloudflare.com
 Run these commands to get your Azure Container Apps hostnames:
 
 ```bash
-# Get frontend FQDN
-az containerapp show \
-  -n namematch-prod-web \
-  -g namematch-prod-rg \
-  --query "properties.configuration.ingress.fqdn" -o tsv
+# Production FQDNs
+az containerapp show -n namematch-prod-web -g namematch-prod-rg --query "properties.configuration.ingress.fqdn" -o tsv
+az containerapp show -n namematch-prod-api -g namematch-prod-rg --query "properties.configuration.ingress.fqdn" -o tsv
 
-# Get backend FQDN
-az containerapp show \
-  -n namematch-prod-api \
-  -g namematch-prod-rg \
-  --query "properties.configuration.ingress.fqdn" -o tsv
+# Dev FQDNs
+az containerapp show -n namematch-dev-web -g namematch-dev-rg --query "properties.configuration.ingress.fqdn" -o tsv
+az containerapp show -n namematch-dev-api -g namematch-dev-rg --query "properties.configuration.ingress.fqdn" -o tsv
 ```
 
 Example output:
 ```
+# Production
 namematch-prod-web.proudocean-abc12345.eastus.azurecontainerapps.io
 namematch-prod-api.proudocean-abc12345.eastus.azurecontainerapps.io
+
+# Dev
+namematch-dev-web.proudocean-abc12345.eastus.azurecontainerapps.io
+namematch-dev-api.proudocean-abc12345.eastus.azurecontainerapps.io
 ```
 
 ---
 
 ## Step 7: Configure DNS Records in Cloudflare
 
-Once your domain is active, go to **DNS** → **Records** in Cloudflare and add:
+Once your domain is active, go to **DNS** → **Records** in Cloudflare and add all records:
+
+### Production Records
 
 | Type | Name | Target | Proxy Status | TTL |
 |------|------|--------|--------------|-----|
-| CNAME | `@` | `<frontend-fqdn>` | DNS only (grey cloud) | Auto |
-| CNAME | `www` | `<frontend-fqdn>` | DNS only (grey cloud) | Auto |
-| CNAME | `api` | `<backend-fqdn>` | DNS only (grey cloud) | Auto |
+| CNAME | `@` | `<prod-frontend-fqdn>` | DNS only (grey cloud) | Auto |
+| CNAME | `www` | `<prod-frontend-fqdn>` | DNS only (grey cloud) | Auto |
+| CNAME | `api` | `<prod-backend-fqdn>` | DNS only (grey cloud) | Auto |
 
-### Example:
+### Dev Records
+
+| Type | Name | Target | Proxy Status | TTL |
+|------|------|--------|--------------|-----|
+| CNAME | `dev` | `<dev-frontend-fqdn>` | DNS only (grey cloud) | Auto |
+| CNAME | `api-dev` | `<dev-backend-fqdn>` | DNS only (grey cloud) | Auto |
+
+### Example (all records):
 
 | Type | Name | Target | Proxy Status |
 |------|------|--------|--------------|
 | CNAME | `@` | `namematch-prod-web.proudocean-abc12345.eastus.azurecontainerapps.io` | DNS only |
 | CNAME | `www` | `namematch-prod-web.proudocean-abc12345.eastus.azurecontainerapps.io` | DNS only |
 | CNAME | `api` | `namematch-prod-api.proudocean-abc12345.eastus.azurecontainerapps.io` | DNS only |
+| CNAME | `dev` | `namematch-dev-web.proudocean-abc12345.eastus.azurecontainerapps.io` | DNS only |
+| CNAME | `api-dev` | `namematch-dev-api.proudocean-abc12345.eastus.azurecontainerapps.io` | DNS only |
 
 > **Important**: Start with "DNS only" (grey cloud icon) until Azure SSL certificates are configured. You can enable proxying (orange cloud) later for CDN benefits.
 
 ---
 
-## Step 8: Add Custom Domain to Azure Container Apps
+## Step 8: Add Custom Domains to Azure Container Apps
 
-### Add hostnames to frontend app:
+Custom domains are configured via Bicep infrastructure-as-code. You can either redeploy with the `enableCustomDomains` parameter or run manual Azure CLI commands.
+
+### Option A: Bicep Deployment (recommended)
+
+After DNS records are configured and propagated, redeploy with custom domains enabled:
 
 ```bash
-# Add apex domain
+# Deploy dev with custom domains
+az deployment sub create \
+  --location eastus \
+  --template-file infra/bicep/main.bicep \
+  --parameters environment=dev \
+  --parameters enableCustomDomains=true \
+  --parameters postgresAdminPassword="$POSTGRES_PASSWORD" \
+  --parameters jwtKey="$JWT_KEY"
+
+# Deploy prod with custom domains
+az deployment sub create \
+  --location eastus \
+  --template-file infra/bicep/main.bicep \
+  --parameters environment=prod \
+  --parameters enableCustomDomains=true \
+  --parameters postgresAdminPassword="$POSTGRES_PASSWORD" \
+  --parameters jwtKey="$JWT_KEY"
+```
+
+### Option B: Manual Azure CLI commands
+
+#### Production Frontend (hatchaname.com, www.hatchaname.com)
+
+```bash
+# Add hostnames
 az containerapp hostname add \
   --name namematch-prod-web \
   --resource-group namematch-prod-rg \
   --hostname hatchaname.com
 
-# Add www subdomain
 az containerapp hostname add \
   --name namematch-prod-web \
   --resource-group namematch-prod-rg \
   --hostname www.hatchaname.com
-```
 
-### Bind managed SSL certificates (free):
-
-```bash
-# Bind certificate for apex domain
+# Bind managed SSL certificates
 az containerapp hostname bind \
   --name namematch-prod-web \
   --resource-group namematch-prod-rg \
@@ -143,7 +188,6 @@ az containerapp hostname bind \
   --environment namematch-prod-env \
   --validation-method CNAME
 
-# Bind certificate for www
 az containerapp hostname bind \
   --name namematch-prod-web \
   --resource-group namematch-prod-rg \
@@ -152,17 +196,79 @@ az containerapp hostname bind \
   --validation-method CNAME
 ```
 
+#### Production Backend (api.hatchaname.com)
+
+```bash
+az containerapp hostname add \
+  --name namematch-prod-api \
+  --resource-group namematch-prod-rg \
+  --hostname api.hatchaname.com
+
+az containerapp hostname bind \
+  --name namematch-prod-api \
+  --resource-group namematch-prod-rg \
+  --hostname api.hatchaname.com \
+  --environment namematch-prod-env \
+  --validation-method CNAME
+```
+
+#### Dev Frontend (dev.hatchaname.com)
+
+```bash
+az containerapp hostname add \
+  --name namematch-dev-web \
+  --resource-group namematch-dev-rg \
+  --hostname dev.hatchaname.com
+
+az containerapp hostname bind \
+  --name namematch-dev-web \
+  --resource-group namematch-dev-rg \
+  --hostname dev.hatchaname.com \
+  --environment namematch-dev-env \
+  --validation-method CNAME
+```
+
+#### Dev Backend (api-dev.hatchaname.com)
+
+```bash
+az containerapp hostname add \
+  --name namematch-dev-api \
+  --resource-group namematch-dev-rg \
+  --hostname api-dev.hatchaname.com
+
+az containerapp hostname bind \
+  --name namematch-dev-api \
+  --resource-group namematch-dev-rg \
+  --hostname api-dev.hatchaname.com \
+  --environment namematch-dev-env \
+  --validation-method CNAME
+```
+
 ---
 
 ## Step 9: Update Backend CORS
 
-Update CORS to allow requests from the new domain:
+Update CORS to allow requests from the custom domains:
+
+### Production
 
 ```bash
 az containerapp ingress cors update \
   --name namematch-prod-api \
   --resource-group namematch-prod-rg \
   --allowed-origins "https://hatchaname.com" "https://www.hatchaname.com" \
+  --allowed-methods "GET" "POST" "PUT" "DELETE" "OPTIONS" "PATCH" \
+  --allowed-headers "*" \
+  --allow-credentials true
+```
+
+### Dev
+
+```bash
+az containerapp ingress cors update \
+  --name namematch-dev-api \
+  --resource-group namematch-dev-rg \
+  --allowed-origins "https://dev.hatchaname.com" \
   --allowed-methods "GET" "POST" "PUT" "DELETE" "OPTIONS" "PATCH" \
   --allowed-headers "*" \
   --allow-credentials true
@@ -217,22 +323,41 @@ To enable:
 
 ## Checklist
 
+### Initial Setup
 - [ ] Create Cloudflare account
 - [ ] Add `hatchaname.com` to Cloudflare
 - [ ] Copy Cloudflare nameservers
 - [ ] Update nameservers in Namecheap (Custom DNS)
 - [ ] Wait for propagation / Cloudflare email confirmation
-- [ ] Get Azure Container Apps FQDNs
-- [ ] Add CNAME records in Cloudflare (DNS only mode)
-- [ ] Add custom hostnames to Azure Container App
-- [ ] Bind managed SSL certificates
-- [ ] Update backend CORS settings
-- [ ] Test all endpoints
-- [ ] (Optional) Enable Cloudflare proxy
+
+### DNS Records (Cloudflare)
+- [ ] Get Azure Container Apps FQDNs (dev and prod)
+- [ ] Add production CNAME records (`@`, `www`, `api`)
+- [ ] Add dev CNAME records (`dev`, `api-dev`)
+
+### Production Environment
+- [ ] Add `hatchaname.com` hostname to frontend
+- [ ] Add `www.hatchaname.com` hostname to frontend
+- [ ] Add `api.hatchaname.com` hostname to backend
+- [ ] Bind SSL certificates for all production domains
+- [ ] Update production backend CORS
+- [ ] Test production endpoints
+
+### Dev Environment
+- [ ] Add `dev.hatchaname.com` hostname to frontend
+- [ ] Add `api-dev.hatchaname.com` hostname to backend
+- [ ] Bind SSL certificates for dev domains
+- [ ] Update dev backend CORS
+- [ ] Test dev endpoints
+
+### Optional
+- [ ] Enable Cloudflare proxy (after SSL is working)
 
 ---
 
 ## Quick Reference
+
+### Production
 
 | URL | Purpose |
 |-----|---------|
@@ -240,3 +365,11 @@ To enable:
 | `https://www.hatchaname.com` | Frontend (www) |
 | `https://api.hatchaname.com` | Backend API |
 | `https://api.hatchaname.com/health` | Health check |
+
+### Dev
+
+| URL | Purpose |
+|-----|---------|
+| `https://dev.hatchaname.com` | Frontend |
+| `https://api-dev.hatchaname.com` | Backend API |
+| `https://api-dev.hatchaname.com/health` | Health check |

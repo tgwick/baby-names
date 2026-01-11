@@ -31,6 +31,12 @@ param backendImageTag string = 'latest'
 @description('Frontend image tag')
 param frontendImageTag string = 'latest'
 
+@description('Enable custom domains (requires DNS to be configured first)')
+param enableCustomDomains bool = false
+
+@description('Base domain name')
+param domainName string = 'hatchaname.com'
+
 // ============================================
 // Variables
 // ============================================
@@ -57,6 +63,30 @@ var containerAppsMinReplicas = isProd ? 2 : 0
 var containerAppsMaxReplicas = isProd ? 10 : 3
 var logRetentionDays = isProd ? 90 : 30
 var acrSku = isProd ? 'Standard' : 'Basic'
+
+// Custom domain configuration
+// Production: hatchaname.com, www.hatchaname.com, api.hatchaname.com
+// Dev: dev.hatchaname.com, api.dev.hatchaname.com
+var frontendCustomDomains = enableCustomDomains ? (isProd ? [
+  domainName
+  'www.${domainName}'
+] : [
+  'dev.${domainName}'
+]) : []
+
+var backendCustomDomains = enableCustomDomains ? (isProd ? [
+  'api.${domainName}'
+] : [
+  'api-dev.${domainName}'
+]) : []
+
+// CORS origins for custom domains (frontend domains the backend should accept)
+var corsCustomOrigins = enableCustomDomains ? (isProd ? [
+  domainName
+  'www.${domainName}'
+] : [
+  'dev.${domainName}'
+]) : []
 
 // ============================================
 // Resource Group
@@ -180,6 +210,9 @@ module backendApp 'modules/container-app-backend.bicep' = {
     appInsightsConnectionString: appInsights.outputs.connectionString
     frontendFqdn: '' // Will be updated after frontend is created
     environment: environment
+    customDomains: backendCustomDomains
+    corsCustomOrigins: corsCustomOrigins
+    containerAppsEnvironmentName: containerEnvName
   }
 }
 
@@ -198,6 +231,8 @@ module frontendApp 'modules/container-app-frontend.bicep' = {
     minReplicas: containerAppsMinReplicas
     maxReplicas: containerAppsMaxReplicas
     apiUrl: 'https://${backendApp.outputs.fqdn}'
+    customDomains: frontendCustomDomains
+    containerAppsEnvironmentName: containerEnvName
   }
 }
 
