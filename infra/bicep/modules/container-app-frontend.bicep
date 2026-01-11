@@ -37,26 +37,12 @@ param apiUrl string
 @description('Custom domain hostnames (empty array to disable)')
 param customDomains array = []
 
-@description('Container Apps Environment name (for certificate references)')
-param containerAppsEnvironmentName string = ''
-
 var actualImage = usePlaceholderImage ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : '${containerRegistryLoginServer}/${imageName}:${imageTag}'
 
-// Create managed certificates for custom domains
-resource certificates 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' = [for domain in customDomains: {
-  name: '${containerAppsEnvironmentName}/cert-${replace(domain, '.', '-')}'
-  location: location
-  properties: {
-    subjectName: domain
-    domainControlValidation: 'CNAME'
-  }
-}]
-
-// Build custom domain bindings with certificate references
-var customDomainBindings = [for (domain, i) in customDomains: {
+// Custom domain bindings - initially without certificate (will be bound via deployment script)
+var customDomainBindings = [for domain in customDomains: {
   name: domain
-  bindingType: 'SniEnabled'
-  certificateId: certificates[i].id
+  bindingType: 'Disabled'
 }]
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {

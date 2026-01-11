@@ -212,7 +212,6 @@ module backendApp 'modules/container-app-backend.bicep' = {
     environment: environment
     customDomains: backendCustomDomains
     corsCustomOrigins: corsCustomOrigins
-    containerAppsEnvironmentName: containerEnvName
   }
 }
 
@@ -232,8 +231,29 @@ module frontendApp 'modules/container-app-frontend.bicep' = {
     maxReplicas: containerAppsMaxReplicas
     apiUrl: 'https://${backendApp.outputs.fqdn}'
     customDomains: frontendCustomDomains
-    containerAppsEnvironmentName: containerEnvName
   }
+}
+
+// ============================================
+// Custom Domain Certificate Binding
+// ============================================
+
+module bindCustomDomains 'modules/bind-custom-domains.bicep' = if (enableCustomDomains) {
+  name: 'bindCustomDomains-${environment}'
+  scope: rg
+  params: {
+    location: location
+    resourceGroupName: resourceGroupName
+    containerAppsEnvironmentName: containerEnvName
+    frontendAppName: frontendAppName
+    backendAppName: backendAppName
+    frontendDomains: frontendCustomDomains
+    backendDomains: backendCustomDomains
+  }
+  dependsOn: [
+    frontendApp
+    backendApp
+  ]
 }
 
 // ============================================
