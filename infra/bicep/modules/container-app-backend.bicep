@@ -53,7 +53,38 @@ param frontendFqdn string = ''
 @allowed(['dev', 'prod'])
 param environment string = 'dev'
 
+@description('Custom domain hostnames for this backend (empty array to disable)')
+param customDomains array = []
+
+@description('Custom domain origins for CORS (frontend custom domains)')
+param corsCustomOrigins array = []
+
+@description('Container Apps Environment name (for certificate references)')
+param containerAppsEnvironmentName string = ''
+
 var actualImage = usePlaceholderImage ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : '${containerRegistryLoginServer}/${imageName}:${imageTag}'
+
+// Create managed certificates for custom domains
+resource certificates 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' = [for domain in customDomains: {
+  name: '${containerAppsEnvironmentName}/cert-${replace(domain, '.', '-')}'
+  location: location
+  properties: {
+    subjectName: domain
+    domainControlValidation: 'CNAME'
+  }
+}]
+
+// Build custom domain bindings with certificate references
+var customDomainBindings = [for (domain, i) in customDomains: {
+  name: domain
+  bindingType: 'SniEnabled'
+  certificateId: certificates[i].id
+}]
+
+// Build CORS allowed origins - include both Azure FQDN and custom domains
+var azureFqdnOrigin = frontendFqdn != '' ? ['https://${frontendFqdn}'] : []
+var customOrigins = [for origin in corsCustomOrigins: 'https://${origin}']
+var allCorsOrigins = empty(corsCustomOrigins) ? (frontendFqdn != '' ? azureFqdnOrigin : ['*']) : union(azureFqdnOrigin, customOrigins)
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
@@ -71,12 +102,9 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 8080
         transport: 'http'
         allowInsecure: false
+        customDomains: customDomainBindings
         corsPolicy: {
-          allowedOrigins: frontendFqdn != '' ? [
-            'https://${frontendFqdn}'
-          ] : [
-            '*'
-          ]
+          allowedOrigins: allCorsOrigins
           allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
           allowedHeaders: ['*']
           allowCredentials: true
