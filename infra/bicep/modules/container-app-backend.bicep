@@ -118,7 +118,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__DefaultConnection'
-              value: 'Host=${postgresHost};Database=${postgresDatabase};Username=pgadmin;Password=placeholder'
+              value: 'Host=${postgresHost};Database=${postgresDatabase};Username=pgadmin;Password=placeholder;Ssl Mode=Require'
             }
             {
               name: 'ConnectionStrings__DefaultConnection__Password'
