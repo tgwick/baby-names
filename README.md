@@ -5,6 +5,7 @@ A collaborative web app for couples to discover and agree on baby names through 
 ## Features
 
 - **Partner Linking** - Create a session and share a code/link with your partner
+- **Preference Filtering** - Set your name style preferences (classic, modern, biblical, nature-inspired, etc.) to filter out names you don't want
 - **Swipe Interface** - Like or dislike names one at a time
 - **Matching** - See names you both liked
 - **Conflict Resolution** - Review names where you disagreed
@@ -136,6 +137,14 @@ namematch/
 |--------|----------|-------------|
 | GET | `/api/conflicts` | Get voting conflicts |
 | POST | `/api/conflicts/{nameId}/clear` | Clear dislike |
+
+### Preferences
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/preferences/questions` | Get preference questions |
+| GET | `/api/preferences` | Get user's saved preferences |
+| POST | `/api/preferences` | Save preference responses |
+| GET | `/api/preferences/status` | Check if both partners completed |
 
 ### Health
 | Method | Endpoint | Description |
