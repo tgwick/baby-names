@@ -16,4 +16,10 @@ public class SessionDto
     public bool IsInitiator { get; set; }
     public string? PartnerDisplayName { get; set; }
     public string? InitiatorDisplayName { get; set; }
+
+    // Preference tracking
+    public SessionSetupStatus SetupStatus { get; set; }
+    public bool InitiatorPrefsCompleted { get; set; }
+    public bool PartnerPrefsCompleted { get; set; }
+    public bool CanStartVoting => InitiatorPrefsCompleted && PartnerPrefsCompleted;
 }

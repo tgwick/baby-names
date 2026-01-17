@@ -14,5 +14,11 @@ public class Session
     public DateTime CreatedAt { get; set; }
     public DateTime? LinkedAt { get; set; }
 
+    // Preference tracking
+    public SessionSetupStatus SetupStatus { get; set; }
+    public DateTime? InitiatorPrefsCompletedAt { get; set; }
+    public DateTime? PartnerPrefsCompletedAt { get; set; }
+
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
+    public ICollection<UserPreference> UserPreferences { get; set; } = new List<UserPreference>();
 }

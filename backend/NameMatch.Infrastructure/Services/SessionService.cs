@@ -208,7 +208,10 @@ public class SessionService : ISessionService
             LinkedAt = session.LinkedAt,
             IsInitiator = session.InitiatorId == currentUserId,
             InitiatorDisplayName = initiator?.DisplayName ?? initiator?.Email,
-            PartnerDisplayName = partner?.DisplayName ?? partner?.Email
+            PartnerDisplayName = partner?.DisplayName ?? partner?.Email,
+            SetupStatus = session.SetupStatus,
+            InitiatorPrefsCompleted = session.InitiatorPrefsCompletedAt.HasValue,
+            PartnerPrefsCompleted = session.PartnerPrefsCompletedAt.HasValue
         };
     }
 }

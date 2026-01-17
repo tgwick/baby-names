@@ -39,6 +39,23 @@ const partnerName = computed(() => {
     : sessionStore.session.initiatorDisplayName
 })
 
+// Preference-related computed
+const myPrefsCompleted = computed(() => {
+  if (!sessionStore.session) return false
+  return sessionStore.session.isInitiator
+    ? sessionStore.session.initiatorPrefsCompleted
+    : sessionStore.session.partnerPrefsCompleted
+})
+
+const partnerPrefsCompleted = computed(() => {
+  if (!sessionStore.session) return false
+  return sessionStore.session.isInitiator
+    ? sessionStore.session.partnerPrefsCompleted
+    : sessionStore.session.initiatorPrefsCompleted
+})
+
+const canStartVoting = computed(() => sessionStore.session?.canStartVoting ?? false)
+
 async function copyCode() {
   if (!sessionStore.session) return
   await navigator.clipboard.writeText(sessionStore.session.joinCode)
@@ -91,7 +108,35 @@ onUnmounted(() => {
 
     <!-- Waiting for Partner -->
     <div v-else-if="sessionStore.isWaitingForPartner" class="space-y-6">
-      <div class="card-elevated p-8 md:p-10 text-center animate-slide-up">
+      <!-- Preferences Card - Show first if not completed -->
+      <div v-if="!myPrefsCompleted" class="card-elevated p-8 md:p-10 text-center animate-slide-up">
+        <div class="relative inline-block mb-6">
+          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--color-mint)] to-[#98D9C2] flex items-center justify-center">
+            <span class="text-5xl">📝</span>
+          </div>
+        </div>
+
+        <h1 class="font-display text-3xl font-semibold text-[var(--color-warm-gray)] mb-3">
+          Set Your Preferences
+        </h1>
+        <p class="text-[var(--color-warm-gray-light)] mb-6 max-w-sm mx-auto">
+          While waiting for your partner, tell us what name styles appeal to you. This helps us show you better matches!
+        </p>
+
+        <RouterLink
+          to="/preferences"
+          class="btn-primary w-full max-w-sm mx-auto text-center inline-block mb-4"
+        >
+          <span>Set Your Preferences</span>
+        </RouterLink>
+
+        <p class="text-xs text-[var(--color-warm-gray-light)]">
+          Takes about 2 minutes
+        </p>
+      </div>
+
+      <!-- Partner Invite Card -->
+      <div class="card-elevated p-8 md:p-10 text-center animate-slide-up" :class="{ 'stagger-2': !myPrefsCompleted }">
         <!-- Floating hearts animation -->
         <div class="relative inline-block mb-6">
           <div class="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--color-peach-light)] to-[var(--color-blush)] flex items-center justify-center animate-float">
@@ -103,10 +148,10 @@ onUnmounted(() => {
         </div>
 
         <h1 class="font-display text-3xl font-semibold text-[var(--color-warm-gray)] mb-3">
-          Waiting for Your Partner
+          Invite Your Partner
         </h1>
         <p class="text-[var(--color-warm-gray-light)] mb-8 max-w-sm mx-auto">
-          Share the code or link below and start discovering baby names together!
+          Share the code or link below so you can discover baby names together!
         </p>
 
         <!-- Join Code Display -->
@@ -160,16 +205,20 @@ onUnmounted(() => {
       </div>
 
       <!-- Session Info Card -->
-      <div class="card p-6 animate-slide-up stagger-2" style="animation-fill-mode: forwards; opacity: 0;">
+      <div class="card p-6 animate-slide-up" :class="myPrefsCompleted ? 'stagger-2' : 'stagger-3'" style="animation-fill-mode: forwards; opacity: 0;">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 rounded-xl bg-[var(--color-blush)] flex items-center justify-center text-2xl">
             {{ genderIcon }}
           </div>
-          <div>
+          <div class="flex-1">
             <h3 class="font-display font-semibold text-[var(--color-warm-gray)]">Session Details</h3>
             <p class="text-sm text-[var(--color-warm-gray-light)]">
               Browsing <strong>{{ genderLabel }}</strong>
             </p>
+          </div>
+          <div v-if="myPrefsCompleted" class="flex items-center gap-2 text-green-600 text-sm">
+            <span>✓</span>
+            <span>Preferences set</span>
           </div>
         </div>
       </div>
@@ -197,18 +246,69 @@ onUnmounted(() => {
         </p>
 
         <!-- Session badge -->
-        <div class="inline-flex items-center gap-3 bg-[var(--color-blush)] px-5 py-3 rounded-full mb-8">
+        <div class="inline-flex items-center gap-3 bg-[var(--color-blush)] px-5 py-3 rounded-full mb-6">
           <span class="text-xl">{{ genderIcon }}</span>
           <span class="font-medium text-[var(--color-coral)]">{{ genderLabel }}</span>
         </div>
 
-        <!-- Start Button -->
+        <!-- Preference Status Section -->
+        <div class="bg-[var(--color-cream)] rounded-2xl p-5 mb-6 text-left">
+          <h3 class="font-semibold text-[var(--color-warm-gray)] mb-3 text-center">Preference Setup</h3>
+          <div class="space-y-3">
+            <!-- My preferences -->
+            <div class="flex items-center gap-3">
+              <span class="text-xl">{{ myPrefsCompleted ? '✅' : '⏳' }}</span>
+              <span class="flex-1 text-sm" :class="myPrefsCompleted ? 'text-green-700' : 'text-[var(--color-warm-gray-light)]'">
+                {{ myPrefsCompleted ? 'Your preferences are set' : 'You haven\'t set your preferences yet' }}
+              </span>
+              <RouterLink
+                v-if="!myPrefsCompleted"
+                to="/preferences"
+                class="text-sm font-semibold text-[var(--color-coral)] hover:underline"
+              >
+                Set Now →
+              </RouterLink>
+            </div>
+            <!-- Partner preferences -->
+            <div class="flex items-center gap-3">
+              <span class="text-xl">{{ partnerPrefsCompleted ? '✅' : '⏳' }}</span>
+              <span class="flex-1 text-sm" :class="partnerPrefsCompleted ? 'text-green-700' : 'text-[var(--color-warm-gray-light)]'">
+                {{ partnerPrefsCompleted ? `${partnerName}'s preferences are set` : `Waiting for ${partnerName}` }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Start Button - only enabled when both have completed -->
         <RouterLink
+          v-if="canStartVoting"
           to="/swipe"
           class="btn-primary w-full max-w-sm mx-auto text-center inline-block"
         >
           <span>Start Swiping Names →</span>
         </RouterLink>
+
+        <!-- Set Preferences Button when not complete -->
+        <RouterLink
+          v-else-if="!myPrefsCompleted"
+          to="/preferences"
+          class="btn-primary w-full max-w-sm mx-auto text-center inline-block"
+        >
+          <span>Set Your Preferences →</span>
+        </RouterLink>
+
+        <!-- Waiting message when user is done but partner isn't -->
+        <div v-else class="text-center">
+          <p class="text-[var(--color-warm-gray-light)] mb-4">
+            Waiting for {{ partnerName }} to complete their preferences...
+          </p>
+          <RouterLink
+            to="/preferences"
+            class="text-sm text-[var(--color-coral)] hover:underline"
+          >
+            Review your preferences
+          </RouterLink>
+        </div>
       </div>
 
       <!-- Partner Card -->

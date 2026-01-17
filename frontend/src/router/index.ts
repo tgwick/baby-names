@@ -51,6 +51,12 @@ const router = createRouter({
       component: () => import('@/views/JoinLinkView.vue'),
     },
     {
+      path: '/preferences',
+      name: 'preferences',
+      component: () => import('@/views/PreferencesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/swipe',
       name: 'swipe',
       component: () => import('@/views/SwipeView.vue'),
