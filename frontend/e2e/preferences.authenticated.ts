@@ -32,7 +32,7 @@ test.describe('Preferences Flow', () => {
 
       // No active session, create one
       await page.getByRole('button', { name: /all names/i }).click()
-      await page.getByRole('button', { name: /create session/i }).click()
+      await page.getByRole('button', { name: /build nest/i }).click()
       await page.waitForURL('/session', { timeout: 10000 })
       return
     }
@@ -41,7 +41,7 @@ test.describe('Preferences Flow', () => {
     if (currentUrl.includes('/dashboard')) {
       await page.goto('/session/create')
       await page.getByRole('button', { name: /all names/i }).click()
-      await page.getByRole('button', { name: /create session/i }).click()
+      await page.getByRole('button', { name: /build nest/i }).click()
       await page.waitForURL('/session', { timeout: 10000 })
     }
   }
