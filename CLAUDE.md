@@ -155,3 +155,23 @@ Backend config in `appsettings.json`:
 - `ConnectionStrings:DefaultConnection` - PostgreSQL (default: localhost:5432)
 - `Jwt:Key/Issuer/Audience/ExpiryInMinutes` - JWT settings
 - `Cors:AllowedOrigins` - Allowed frontend origins
+
+## Pre-Push Checklist
+
+**IMPORTANT:** Before pushing changes or creating a PR, always run the full test suite to avoid CI failures:
+
+```bash
+# 1. Backend build and tests (from project root, uses Docker)
+docker run --rm -v "$(pwd)/backend:/src" -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet build NameMatch.sln
+docker run --rm -v "$(pwd)/backend:/src" -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet test
+
+# 2. Frontend build and tests (from frontend/ directory)
+cd frontend
+npm run build      # Type-check and production build
+npm run test:run   # Unit tests
+
+# 3. E2E tests (requires running containers)
+npm run e2e        # Playwright tests
+```
+
+All tests must pass before pushing. The CI pipeline runs these same checks.
