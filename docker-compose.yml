@@ -2,11 +2,11 @@ services:
   # PostgreSQL database
   postgres:
     image: postgres:16-alpine
-    container_name: namematch-db
+    container_name: hatchaname-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: namematch
+      POSTGRES_DB: hatchaname
     ports:
       - "5432:5432"
     volumes:
@@ -23,13 +23,13 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: namematch-api
+    container_name: hatchaname-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=namematch;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=hatchaname;Username=postgres;Password=postgres
       - Jwt__Key=YourSuperSecretKeyThatIsAtLeast32CharactersLong!
-      - Jwt__Issuer=NameMatch
-      - Jwt__Audience=NameMatchUsers
+      - Jwt__Issuer=HatchAName
+      - Jwt__Audience=HatchANameUsers
       - Jwt__ExpiryInMinutes=60
       - Cors__AllowedOrigins__0=http://localhost:5173
       - Cors__AllowedOrigins__1=http://localhost:8080
@@ -50,7 +50,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: namematch-web
+    container_name: hatchaname-web
     environment:
       - API_URL=http://backend:8080
     ports:

@@ -78,10 +78,10 @@ function formatDate(dateStr: string) {
     <!-- Title -->
     <div class="text-center mb-6 sm:mb-8 animate-slide-up stagger-1" style="animation-fill-mode: forwards; opacity: 0;">
       <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[var(--color-blush)] mb-3 sm:mb-4">
-        <span class="text-3xl sm:text-4xl">💕</span>
+        <span class="text-3xl sm:text-4xl">🐣</span>
       </div>
       <h1 class="font-display text-3xl sm:text-4xl font-bold text-[var(--color-warm-gray)]">
-        Your Matches
+        Hatched Names
       </h1>
       <p v-if="!loading && !error" class="text-sm sm:text-base text-[var(--color-warm-gray-light)] mt-2">
         {{ sessionStore.matches.length }} {{ sessionStore.matches.length === 1 ? 'name' : 'names' }} you both love
@@ -91,9 +91,9 @@ function formatDate(dateStr: string) {
     <!-- Loading state -->
     <div v-if="loading" class="text-center py-16 animate-slide-up">
       <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--color-blush)] mb-4 animate-pulse-soft">
-        <span class="text-3xl">💕</span>
+        <span class="text-3xl">🥚</span>
       </div>
-      <p class="text-[var(--color-warm-gray-light)]">Loading matches...</p>
+      <p class="text-[var(--color-warm-gray-light)]">Warming up your names...</p>
     </div>
 
     <!-- Error state -->
@@ -166,13 +166,13 @@ function formatDate(dateStr: string) {
     <!-- Empty state -->
     <div v-else class="card-elevated p-6 sm:p-10 text-center animate-slide-up stagger-2" style="animation-fill-mode: forwards; opacity: 0;">
       <div class="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-[var(--color-cream)] flex items-center justify-center mb-4 sm:mb-6">
-        <span class="text-4xl sm:text-5xl">💭</span>
+        <span class="text-4xl sm:text-5xl">🥚</span>
       </div>
       <h2 class="font-display text-xl sm:text-2xl font-semibold text-[var(--color-warm-gray)] mb-2 sm:mb-3">
-        No Matches Yet
+        No Hatched Names Yet
       </h2>
       <p class="text-sm sm:text-base text-[var(--color-warm-gray-light)] mb-4 sm:mb-6 max-w-sm mx-auto">
-        Keep swiping! When you and your partner both love a name, it'll appear here.
+        Keep swiping! When you and your partner both love a name, it'll hatch here.
       </p>
       <button @click="router.push('/swipe')" class="btn-primary">
         <span>Start Swiping</span>

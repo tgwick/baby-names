@@ -53,7 +53,24 @@ param frontendFqdn string = ''
 @allowed(['dev', 'prod'])
 param environment string = 'dev'
 
+@description('Custom domain hostnames for this backend (empty array to disable)')
+param customDomains array = []
+
+@description('Custom domain origins for CORS (frontend custom domains)')
+param corsCustomOrigins array = []
+
 var actualImage = usePlaceholderImage ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : '${containerRegistryLoginServer}/${imageName}:${imageTag}'
+
+// Custom domain bindings - initially without certificate (will be bound via deployment script)
+var customDomainBindings = [for domain in customDomains: {
+  name: domain
+  bindingType: 'Disabled'
+}]
+
+// Build CORS allowed origins - include both Azure FQDN and custom domains
+var azureFqdnOrigin = frontendFqdn != '' ? ['https://${frontendFqdn}'] : []
+var customOrigins = [for origin in corsCustomOrigins: 'https://${origin}']
+var allCorsOrigins = empty(corsCustomOrigins) ? (frontendFqdn != '' ? azureFqdnOrigin : ['*']) : union(azureFqdnOrigin, customOrigins)
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
@@ -71,19 +88,17 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 8080
         transport: 'http'
         allowInsecure: false
+        customDomains: customDomainBindings
         corsPolicy: {
-          allowedOrigins: frontendFqdn != '' ? [
-            'https://${frontendFqdn}'
-          ] : [
-            '*'
-          ]
+          allowedOrigins: allCorsOrigins
           allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
           allowedHeaders: ['*']
           allowCredentials: true
           maxAge: 3600
         }
       }
-      registries: usePlaceholderImage ? [] : [
+      // Always configure registry so app deployments can pull images
+      registries: [
         {
           server: containerRegistryLoginServer
           identity: 'system'
@@ -118,7 +133,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__DefaultConnection'
-              value: 'Host=${postgresHost};Database=${postgresDatabase};Username=pgadmin;Password=placeholder'
+              value: 'Host=${postgresHost};Database=${postgresDatabase};Username=pgadmin;Password=placeholder;Ssl Mode=Require'
             }
             {
               name: 'ConnectionStrings__DefaultConnection__Password'

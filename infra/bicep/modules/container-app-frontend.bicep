@@ -34,7 +34,16 @@ param maxReplicas int = 3
 @description('Backend API URL')
 param apiUrl string
 
+@description('Custom domain hostnames (empty array to disable)')
+param customDomains array = []
+
 var actualImage = usePlaceholderImage ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : '${containerRegistryLoginServer}/${imageName}:${imageTag}'
+
+// Custom domain bindings - initially without certificate (will be bound via deployment script)
+var customDomainBindings = [for domain in customDomains: {
+  name: domain
+  bindingType: 'Disabled'
+}]
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
@@ -52,8 +61,10 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 8080
         transport: 'http'
         allowInsecure: false
+        customDomains: customDomainBindings
       }
-      registries: usePlaceholderImage ? [] : [
+      // Always configure registry so app deployments can pull images
+      registries: [
         {
           server: containerRegistryLoginServer
           identity: 'system'

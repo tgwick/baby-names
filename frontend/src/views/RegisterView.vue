@@ -46,13 +46,13 @@ async function handleSubmit() {
       <!-- Header -->
       <div class="text-center mb-6 sm:mb-8">
         <div class="w-16 h-16 bg-[var(--color-blush)] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
-          💕
+          🐣
         </div>
         <h1 class="font-display text-2xl sm:text-3xl font-semibold text-[var(--color-warm-gray)]">
-          Create Account
+          Create Your Nest
         </h1>
         <p class="text-[var(--color-warm-gray-light)] mt-2">
-          Start finding the perfect baby name together
+          Start hatching the perfect baby name together
         </p>
       </div>
 

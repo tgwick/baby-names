@@ -6,22 +6,22 @@ test.describe('Authenticated Session Flow', () => {
   test('should display create session form with gender options', async ({ page }) => {
     await page.goto('/session/create')
 
-    await expect(page.getByRole('heading', { name: /start your journey/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /build your nest/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /boy names/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /girl names/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /all names/i })).toBeVisible()
-    await expect(page.getByRole('button', { name: /create session/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /build nest/i })).toBeVisible()
   })
 
   test('should have create button disabled when no gender selected', async ({ page }) => {
     await page.goto('/session/create')
 
     // Create button should be disabled when no gender is selected
-    await expect(page.getByRole('button', { name: /create session/i })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /build nest/i })).toBeDisabled()
 
     // After selecting a gender, the button should be enabled
     await page.getByRole('button', { name: /boy names/i }).click()
-    await expect(page.getByRole('button', { name: /create session/i })).toBeEnabled()
+    await expect(page.getByRole('button', { name: /build nest/i })).toBeEnabled()
   })
 
   test('should create session and display join code', async ({ page }) => {
@@ -29,7 +29,7 @@ test.describe('Authenticated Session Flow', () => {
 
     // Select a gender option
     await page.getByRole('button', { name: /girl names/i }).click()
-    await page.getByRole('button', { name: /create session/i }).click()
+    await page.getByRole('button', { name: /build nest/i }).click()
 
     // Should redirect to session page with waiting status visible
     await expect(page).toHaveURL('/session', { timeout: 10000 })
