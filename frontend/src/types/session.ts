@@ -1,3 +1,5 @@
+import type { SessionSetupStatus } from './preferences'
+
 export const Gender = {
   Male: 0,
   Female: 1,
@@ -27,6 +29,11 @@ export interface Session {
   isInitiator: boolean
   partnerDisplayName: string | null
   initiatorDisplayName: string | null
+  // Preference tracking
+  setupStatus: SessionSetupStatus
+  initiatorPrefsCompleted: boolean
+  partnerPrefsCompleted: boolean
+  canStartVoting: boolean
 }
 
 export interface CreateSessionRequest {
