@@ -110,7 +110,7 @@ public class PreferenceService : IPreferenceService
                 {
                     new() { OptionId = "love", Label = "Love them", Description = "Show me more Biblical names", CategoryCodes = new List<string> { "BIBLICAL" }, PreferenceLevel = (int)PreferenceLevel.Love },
                     new() { OptionId = "like", Label = "They're fine", Description = "Include them in the mix", CategoryCodes = new List<string> { "BIBLICAL" }, PreferenceLevel = (int)PreferenceLevel.Neutral },
-                    new() { OptionId = "avoid", Label = "Prefer to avoid", Description = "Show fewer Biblical names", CategoryCodes = new List<string> { "BIBLICAL" }, PreferenceLevel = (int)PreferenceLevel.Dislike }
+                    new() { OptionId = "avoid", Label = "Do not include", Description = "Exclude Biblical names", CategoryCodes = new List<string> { "BIBLICAL" }, PreferenceLevel = (int)PreferenceLevel.Avoid }
                 }
             },
             new()
@@ -123,7 +123,7 @@ public class PreferenceService : IPreferenceService
                 {
                     new() { OptionId = "love", Label = "Love them", Description = "Names like River, Rose, Sky", CategoryCodes = new List<string> { "NATURE" }, PreferenceLevel = (int)PreferenceLevel.Love },
                     new() { OptionId = "like", Label = "They're fine", Description = "Include them in the mix", CategoryCodes = new List<string> { "NATURE" }, PreferenceLevel = (int)PreferenceLevel.Neutral },
-                    new() { OptionId = "avoid", Label = "Prefer to avoid", Description = "Not my style", CategoryCodes = new List<string> { "NATURE" }, PreferenceLevel = (int)PreferenceLevel.Dislike }
+                    new() { OptionId = "avoid", Label = "Do not include", Description = "Exclude nature names", CategoryCodes = new List<string> { "NATURE" }, PreferenceLevel = (int)PreferenceLevel.Avoid }
                 }
             },
             new()
