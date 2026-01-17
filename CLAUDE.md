@@ -52,20 +52,21 @@ npm run e2e:ui     # Run Playwright with interactive UI
 
 - **NameMatch.Api** - Controllers, Program.cs (DI setup, middleware). References Application + Infrastructure.
 - **NameMatch.Application** - DTOs, service interfaces, business logic. References Domain.
-- **NameMatch.Domain** - Entities (`Name`, `Session`, `Vote`), Enums (`Gender`, `VoteType`, `SessionStatus`). No dependencies.
+- **NameMatch.Domain** - Entities (`Name`, `Session`, `Vote`, `NameCategory`, `UserPreference`), Enums (`Gender`, `VoteType`, `SessionStatus`, `PreferenceLevel`). No dependencies.
 - **NameMatch.Infrastructure** - EF Core `ApplicationDbContext`, `ApplicationUser` (Identity), services. References Application + Domain.
 
 ### Frontend Structure
 
-- `src/stores/` - Pinia stores (`auth.ts` for JWT, `session.ts` for session/voting state)
+- `src/stores/` - Pinia stores (`auth.ts` for JWT, `session.ts` for session/voting state, `preferences.ts` for preference questionnaire)
 - `src/services/` - API client with Axios interceptors
 - `src/router/` - Vue Router with auth guards (`requiresAuth`, `guest` meta)
 - `src/views/` - Page components:
   - Auth: `LoginView`, `RegisterView`
   - Session: `DashboardView`, `CreateSessionView`, `JoinSessionView`, `SessionView`
+  - Preferences: `PreferencesView`
   - Voting: `SwipeView`, `MatchesView`, `ConflictsView`
 - `src/components/` - Reusable components (`NameCard`, `MatchCelebration`, `AppHeader`)
-- `src/types/` - TypeScript interfaces (`auth.ts`, `session.ts`, `vote.ts`)
+- `src/types/` - TypeScript interfaces (`auth.ts`, `session.ts`, `vote.ts`, `preferences.ts`)
 
 ## API Endpoints
 
@@ -94,6 +95,12 @@ npm run e2e:ui     # Run Playwright with interactive UI
 - `GET /api/conflicts` - Get voting conflicts (names one liked, other disliked)
 - `POST /api/conflicts/{nameId}/clear` - Clear your dislike on a name
 
+### Preferences
+- `GET /api/preferences/questions` - Get preference questions with category options
+- `GET /api/preferences` - Get user's saved preferences for current session
+- `POST /api/preferences` - Save preference responses (categoryId, level: -2 to +2)
+- `GET /api/preferences/status` - Check if both partners have completed preferences
+
 ### Health
 - `GET /health` - Full health check with database status
 - `GET /health/ready` - Readiness probe (checks dependencies)
@@ -113,6 +120,9 @@ PostgreSQL with tables:
 - **Sessions** - Links two users with JoinCode/PartnerLink, stores TargetGender
 - **Names** - Baby names with Gender, PopularityScore, Origin
 - **Votes** - User votes (Like/Dislike) on names within a session
+- **NameCategories** - Categories for filtering (e.g., Biblical, Nature, Classic, Modern)
+- **NameCategoryMappings** - Many-to-many link between Names and Categories with confidence score
+- **UserPreferences** - User preference levels (-2 to +2) for each category per session
 
 ## Testing
 
@@ -136,6 +146,7 @@ PostgreSQL with tables:
 - `auth.spec.ts` - Authentication flows, form validation, protected routes
 - `session.spec.ts` - Unauthenticated session redirects
 - `session.authenticated.ts` - Authenticated session tests (create, join, dashboard)
+- `preferences.authenticated.ts` - Preferences questionnaire flow, filtering verification
 - **Config:** `frontend/playwright.config.ts` - Multi-project setup (setup, chromium, chromium-authenticated)
 
 ## Configuration
@@ -144,3 +155,23 @@ Backend config in `appsettings.json`:
 - `ConnectionStrings:DefaultConnection` - PostgreSQL (default: localhost:5432)
 - `Jwt:Key/Issuer/Audience/ExpiryInMinutes` - JWT settings
 - `Cors:AllowedOrigins` - Allowed frontend origins
+
+## Pre-Push Checklist
+
+**IMPORTANT:** Before pushing changes or creating a PR, always run the full test suite to avoid CI failures:
+
+```bash
+# 1. Backend build and tests (from project root, uses Docker)
+docker run --rm -v "$(pwd)/backend:/src" -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet build NameMatch.sln
+docker run --rm -v "$(pwd)/backend:/src" -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet test
+
+# 2. Frontend build and tests (from frontend/ directory)
+cd frontend
+npm run build      # Type-check and production build
+npm run test:run   # Unit tests
+
+# 3. E2E tests (requires running containers)
+npm run e2e        # Playwright tests
+```
+
+All tests must pass before pushing. The CI pipeline runs these same checks.

@@ -11,6 +11,7 @@ using NameMatch.Application.Interfaces;
 using NameMatch.Infrastructure.Data;
 using NameMatch.Infrastructure.Identity;
 using NameMatch.Infrastructure.Services;
+using NameMatch.Infrastructure.DataEnrichment;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -136,7 +137,9 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<INameService, NameService>();
 builder.Services.AddScoped<IVoteService, VoteService>();
+builder.Services.AddScoped<IPreferenceService, PreferenceService>();
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+builder.Services.AddScoped<INameEnricher, NameEnricher>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -201,6 +204,7 @@ using (var scope = app.Services.CreateScope())
 
         var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
         await seeder.SeedNamesAsync();
+        await seeder.SeedCategoriesAsync();
     }
     catch (Exception ex)
     {

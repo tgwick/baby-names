@@ -6,7 +6,8 @@
 
 ## Features
 
-- **Build Your Nest** - Create a session and share a code/link with your partner
+- **Partner Linking** - Create a session and share a code/link with your partner
+- **Preference Filtering** - Set your name style preferences (classic, modern, biblical, nature-inspired, etc.) to filter out names you don't want
 - **Swipe Interface** - Like or dislike names one at a time
 - **Watch Names Hatch** - See names you both loved as they hatch into matches
 - **Conflict Resolution** - Review names where you disagreed
@@ -138,6 +139,14 @@ hatchaname/
 |--------|----------|-------------|
 | GET | `/api/conflicts` | Get voting conflicts |
 | POST | `/api/conflicts/{nameId}/clear` | Clear dislike |
+
+### Preferences
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/preferences/questions` | Get preference questions |
+| GET | `/api/preferences` | Get user's saved preferences |
+| POST | `/api/preferences` | Save preference responses |
+| GET | `/api/preferences/status` | Check if both partners completed |
 
 ### Health
 | Method | Endpoint | Description |
