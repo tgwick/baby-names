@@ -31,20 +31,35 @@ jobs:
     environment: prod
     outputs:
       version: ${{ steps.version.outputs.tag }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Determine version
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          MANUAL_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" == "release" ]; then
-            # Use release tag name
-            TAG="${{ github.event.release.tag_name }}"
+          if [ "${EVENT_NAME}" == "release" ]; then
+            # For releases, get the commit SHA the release tag points to
+            COMMIT_SHA=$(git rev-list -n 1 "${RELEASE_TAG}")
+            SHORT_SHA=$(echo "${COMMIT_SHA}" | cut -c1-7)
+            echo "Release ${RELEASE_TAG} points to commit ${SHORT_SHA}"
+            echo "tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+            echo "Deploying version: ${SHORT_SHA} (release ${RELEASE_TAG})"
           else
-            # Use manual input
-            TAG="${{ github.event.inputs.version }}"
+            # Use manual input (commit SHA)
+            echo "tag=${MANUAL_VERSION}" >> $GITHUB_OUTPUT
+            echo "release_tag=" >> $GITHUB_OUTPUT
+            echo "Deploying version: ${MANUAL_VERSION}"
           fi
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Deploying version: ${TAG}"
 
       - name: Azure Login
         uses: azure/login@v2
@@ -54,34 +69,60 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Promote backend image
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
         run: |
           echo "Promoting backend image from dev to prod..."
           az acr import \
             --name ${{ env.PROD_ACR_NAME }} \
-            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-api:${{ steps.version.outputs.tag }} \
-            --image namematch-api:${{ steps.version.outputs.tag }} \
+            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-api:${IMAGE_TAG} \
+            --image namematch-api:${IMAGE_TAG} \
             --force
 
           az acr import \
             --name ${{ env.PROD_ACR_NAME }} \
-            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-api:${{ steps.version.outputs.tag }} \
+            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-api:${IMAGE_TAG} \
             --image namematch-api:latest \
             --force
 
+          # Also tag with release version if this is a release
+          if [ -n "${RELEASE_TAG}" ]; then
+            echo "Tagging with release version: ${RELEASE_TAG}"
+            az acr import \
+              --name ${{ env.PROD_ACR_NAME }} \
+              --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-api:${IMAGE_TAG} \
+              --image namematch-api:${RELEASE_TAG} \
+              --force
+          fi
+
       - name: Promote frontend image
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
         run: |
           echo "Promoting frontend image from dev to prod..."
           az acr import \
             --name ${{ env.PROD_ACR_NAME }} \
-            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-web:${{ steps.version.outputs.tag }} \
-            --image namematch-web:${{ steps.version.outputs.tag }} \
+            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-web:${IMAGE_TAG} \
+            --image namematch-web:${IMAGE_TAG} \
             --force
 
           az acr import \
             --name ${{ env.PROD_ACR_NAME }} \
-            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-web:${{ steps.version.outputs.tag }} \
+            --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-web:${IMAGE_TAG} \
             --image namematch-web:latest \
             --force
+
+          # Also tag with release version if this is a release
+          if [ -n "${RELEASE_TAG}" ]; then
+            echo "Tagging with release version: ${RELEASE_TAG}"
+            az acr import \
+              --name ${{ env.PROD_ACR_NAME }} \
+              --source ${{ env.DEV_ACR_NAME }}.azurecr.io/namematch-web:${IMAGE_TAG} \
+              --image namematch-web:${RELEASE_TAG} \
+              --force
+          fi
 
   # ============================================
   # Deploy to Production
@@ -136,14 +177,20 @@ jobs:
           echo "Frontend URL: https://$FRONTEND_URL"
 
       - name: Deployment summary
+        env:
+          IMAGE_TAG: ${{ needs.promote-images.outputs.version }}
+          RELEASE_TAG: ${{ needs.promote-images.outputs.release_tag }}
         run: |
           BACKEND_URL=$(az containerapp show -n ${{ env.BACKEND_APP }} -g ${{ env.AZURE_RESOURCE_GROUP }} --query properties.configuration.ingress.fqdn -o tsv)
           FRONTEND_URL=$(az containerapp show -n ${{ env.FRONTEND_APP }} -g ${{ env.AZURE_RESOURCE_GROUP }} --query properties.configuration.ingress.fqdn -o tsv)
 
           echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | URL |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | https://$FRONTEND_URL |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | https://$BACKEND_URL |" >> $GITHUB_STEP_SUMMARY
-          echo "| Version | ${{ needs.promote-images.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Tag | ${IMAGE_TAG} |" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${RELEASE_TAG}" ]; then
+            echo "| Release | ${RELEASE_TAG} |" >> $GITHUB_STEP_SUMMARY
+          fi
