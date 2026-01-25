@@ -24,25 +24,26 @@ public class NamesController : ControllerBase
     }
 
     /// <summary>
-    /// Gets the next unvoted name for the current user's active session.
+    /// Gets the next unvoted name for the specified session.
     /// </summary>
     /// <remarks>
     /// Returns names filtered by the session's target gender.
     /// Returns null data with success message when no more names are available.
     /// </remarks>
+    /// <param name="sessionId">The session ID.</param>
     /// <returns>Next unvoted name, or null if none remaining.</returns>
     /// <response code="200">Name retrieved (or null if no more available).</response>
     /// <response code="401">User not authenticated.</response>
     [HttpGet("next")]
     [ProducesResponseType(typeof(ApiResponse<NameDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<NameDto>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<NameDto>>> GetNextName()
+    public async Task<ActionResult<ApiResponse<NameDto>>> GetNextName([FromQuery] Guid sessionId)
     {
         var userId = GetUserId();
         if (userId == null)
             return Unauthorized(ApiResponse<NameDto>.Fail("User not found"));
 
-        var name = await _nameService.GetNextUnvotedNameAsync(userId);
+        var name = await _nameService.GetNextUnvotedNameAsync(userId, sessionId);
 
         if (name == null)
         {

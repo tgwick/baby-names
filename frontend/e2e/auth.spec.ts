@@ -81,8 +81,8 @@ test.describe('Authentication Flow', () => {
   })
 
   test.describe('Protected Routes', () => {
-    test('should redirect to login when accessing dashboard without auth', async ({ page }) => {
-      await page.goto('/dashboard')
+    test('should redirect to login when accessing sessions without auth', async ({ page }) => {
+      await page.goto('/sessions')
 
       // Should redirect to login
       await expect(page).toHaveURL('/login')
@@ -91,6 +91,13 @@ test.describe('Authentication Flow', () => {
     test('should redirect to login when accessing session create without auth', async ({ page }) => {
       await page.goto('/session/create')
 
+      await expect(page).toHaveURL('/login')
+    })
+
+    test('should redirect legacy /dashboard to login without auth', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // /dashboard redirects to /sessions which requires auth
       await expect(page).toHaveURL('/login')
     })
   })

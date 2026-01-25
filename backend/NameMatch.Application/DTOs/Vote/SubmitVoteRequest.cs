@@ -6,6 +6,9 @@ namespace NameMatch.Application.DTOs.Vote;
 public class SubmitVoteRequest
 {
     [Required]
+    public Guid SessionId { get; set; }
+
+    [Required]
     [Range(1, int.MaxValue, ErrorMessage = "NameId must be a positive integer")]
     public int NameId { get; set; }
 

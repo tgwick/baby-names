@@ -24,12 +24,32 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>
+    /// List all sessions for the current user.
+    /// </summary>
+    /// <param name="includeArchived">Whether to include archived sessions (default: false).</param>
+    /// <returns>List of user's sessions.</returns>
+    /// <response code="200">Sessions retrieved successfully.</response>
+    /// <response code="401">User not authenticated.</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<SessionListResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SessionListResponseDto>), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse<SessionListResponseDto>>> GetSessions([FromQuery] bool includeArchived = false)
+    {
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized(ApiResponse<SessionListResponseDto>.Fail("User not found"));
+
+        var sessions = await _sessionService.GetUserSessionsAsync(userId, includeArchived);
+        return Ok(ApiResponse<SessionListResponseDto>.Ok(sessions));
+    }
+
+    /// <summary>
     /// Create a new session for voting on baby names.
     /// </summary>
     /// <param name="request">Session creation details including target gender for names.</param>
     /// <returns>Created session with join code and partner link.</returns>
     /// <response code="200">Session created successfully.</response>
-    /// <response code="400">User already has an active session.</response>
+    /// <response code="400">Invalid request.</response>
     /// <response code="401">User not authenticated.</response>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
@@ -155,6 +175,72 @@ public class SessionsController : ControllerBase
             return NotFound(ApiResponse<SessionDto>.Fail("Session not found"));
 
         return Ok(ApiResponse<SessionDto>.Ok(session));
+    }
+
+    /// <summary>
+    /// Archive a session.
+    /// </summary>
+    /// <param name="id">The session ID.</param>
+    /// <returns>Updated session details.</returns>
+    /// <response code="200">Session archived successfully.</response>
+    /// <response code="400">Session already archived.</response>
+    /// <response code="401">User not authenticated.</response>
+    /// <response code="404">Session not found.</response>
+    [HttpPatch("{id:guid}/archive")]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<SessionDto>>> ArchiveSession(Guid id)
+    {
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized(ApiResponse<SessionDto>.Fail("User not found"));
+
+        try
+        {
+            var session = await _sessionService.ArchiveSessionAsync(id, userId);
+            return Ok(ApiResponse<SessionDto>.Ok(session, "Session archived successfully"));
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (ex.Message.Contains("not found"))
+                return NotFound(ApiResponse<SessionDto>.Fail(ex.Message));
+            return BadRequest(ApiResponse<SessionDto>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Unarchive a session.
+    /// </summary>
+    /// <param name="id">The session ID.</param>
+    /// <returns>Updated session details.</returns>
+    /// <response code="200">Session unarchived successfully.</response>
+    /// <response code="400">Session not archived.</response>
+    /// <response code="401">User not authenticated.</response>
+    /// <response code="404">Session not found.</response>
+    [HttpPatch("{id:guid}/unarchive")]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<SessionDto>>> UnarchiveSession(Guid id)
+    {
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized(ApiResponse<SessionDto>.Fail("User not found"));
+
+        try
+        {
+            var session = await _sessionService.UnarchiveSessionAsync(id, userId);
+            return Ok(ApiResponse<SessionDto>.Ok(session, "Session unarchived successfully"));
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (ex.Message.Contains("not found"))
+                return NotFound(ApiResponse<SessionDto>.Fail(ex.Message));
+            return BadRequest(ApiResponse<SessionDto>.Fail(ex.Message));
+        }
     }
 
     private string? GetUserId()

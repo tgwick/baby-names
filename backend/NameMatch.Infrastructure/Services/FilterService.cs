@@ -105,7 +105,7 @@ public class FilterService : IFilterService
         return Task.FromResult<IEnumerable<FilterQuestionDto>>(questions);
     }
 
-    public async Task<SessionFiltersStatusDto> SubmitFiltersAsync(string userId, SubmitFiltersRequest request)
+    public async Task<SessionFiltersStatusDto> SubmitFiltersAsync(string userId, Guid sessionId, SubmitFiltersRequest request)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -114,15 +114,15 @@ public class FilterService : IFilterService
 
         ArgumentNullException.ThrowIfNull(request);
 
-        // Get user's active or waiting session
+        // Get specified session and verify user access
         var session = await _context.Sessions
             .FirstOrDefaultAsync(s =>
-                (s.InitiatorId == userId || s.PartnerId == userId) &&
-                (s.Status == SessionStatus.Active || s.Status == SessionStatus.WaitingForPartner));
+                s.Id == sessionId &&
+                (s.InitiatorId == userId || s.PartnerId == userId));
 
         if (session == null)
         {
-            throw new InvalidOperationException("No active session found. Join or create a session first.");
+            throw new InvalidOperationException("Session not found or you don't have access.");
         }
 
         // Get all questions to map answers
@@ -207,12 +207,12 @@ public class FilterService : IFilterService
         };
     }
 
-    public async Task<SessionFiltersStatusDto?> GetFiltersStatusAsync(string userId)
+    public async Task<SessionFiltersStatusDto?> GetFiltersStatusAsync(string userId, Guid sessionId)
     {
         var session = await _context.Sessions
             .FirstOrDefaultAsync(s =>
-                (s.InitiatorId == userId || s.PartnerId == userId) &&
-                (s.Status == SessionStatus.Active || s.Status == SessionStatus.WaitingForPartner));
+                s.Id == sessionId &&
+                (s.InitiatorId == userId || s.PartnerId == userId));
 
         if (session == null)
         {
@@ -229,12 +229,12 @@ public class FilterService : IFilterService
         };
     }
 
-    public async Task<UserFiltersDto?> GetUserFiltersAsync(string userId)
+    public async Task<UserFiltersDto?> GetUserFiltersAsync(string userId, Guid sessionId)
     {
         var session = await _context.Sessions
             .FirstOrDefaultAsync(s =>
-                (s.InitiatorId == userId || s.PartnerId == userId) &&
-                (s.Status == SessionStatus.Active || s.Status == SessionStatus.WaitingForPartner));
+                s.Id == sessionId &&
+                (s.InitiatorId == userId || s.PartnerId == userId));
 
         if (session == null)
         {
@@ -242,7 +242,7 @@ public class FilterService : IFilterService
         }
 
         var filter = await _context.SessionFilters
-            .FirstOrDefaultAsync(f => f.UserId == userId && f.SessionId == session.Id);
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.SessionId == sessionId);
 
         if (filter == null)
         {

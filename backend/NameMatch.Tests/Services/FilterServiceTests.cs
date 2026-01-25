@@ -76,7 +76,7 @@ public class FilterServiceTests
         };
 
         // Act
-        var result = await service.SubmitFiltersAsync(userId, request);
+        var result = await service.SubmitFiltersAsync(userId, session.Id, request);
 
         // Assert
         result.Should().NotBeNull();
@@ -92,17 +92,18 @@ public class FilterServiceTests
     }
 
     [Fact]
-    public async Task SubmitFiltersAsync_ThrowsException_WhenNoActiveSession()
+    public async Task SubmitFiltersAsync_ThrowsException_WhenSessionNotFound()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
         var service = new FilterService(context);
+        var nonExistentSessionId = Guid.NewGuid();
 
-        var request = new SubmitFiltersRequest { Answers = new List<FilterAnswerDto>() };
+        var request = new SubmitFiltersRequest { SessionId = nonExistentSessionId, Answers = new List<FilterAnswerDto>() };
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.SubmitFiltersAsync("user-123", request));
+            () => service.SubmitFiltersAsync("user-123", nonExistentSessionId, request));
     }
 
     [Fact]
@@ -139,7 +140,7 @@ public class FilterServiceTests
         };
 
         // Act
-        var result = await service.SubmitFiltersAsync(partnerId, request);
+        var result = await service.SubmitFiltersAsync(partnerId, session.Id, request);
 
         // Assert
         result.PartnerCompleted.Should().BeTrue();
@@ -147,14 +148,15 @@ public class FilterServiceTests
     }
 
     [Fact]
-    public async Task GetFiltersStatusAsync_ReturnsNull_WhenNoSession()
+    public async Task GetFiltersStatusAsync_ReturnsNull_WhenSessionNotFound()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
         var service = new FilterService(context);
+        var nonExistentSessionId = Guid.NewGuid();
 
         // Act
-        var result = await service.GetFiltersStatusAsync("user-123");
+        var result = await service.GetFiltersStatusAsync("user-123", nonExistentSessionId);
 
         // Assert
         result.Should().BeNull();
@@ -183,7 +185,7 @@ public class FilterServiceTests
         var service = new FilterService(context);
 
         // Act
-        var result = await service.GetUserFiltersAsync(userId);
+        var result = await service.GetUserFiltersAsync(userId, session.Id);
 
         // Assert
         result.Should().BeNull();

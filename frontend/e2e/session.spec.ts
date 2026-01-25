@@ -26,8 +26,14 @@ test.describe('Session Management', () => {
     })
   })
 
-  test.describe('Session Page', () => {
+  test.describe('Sessions List Page', () => {
     test('should redirect to login when not authenticated', async ({ page }) => {
+      await page.goto('/sessions')
+
+      await expect(page).toHaveURL('/login')
+    })
+
+    test('should redirect legacy /session to login when not authenticated', async ({ page }) => {
       await page.goto('/session')
 
       await expect(page).toHaveURL('/login')

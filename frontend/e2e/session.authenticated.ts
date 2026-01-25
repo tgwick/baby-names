@@ -25,15 +25,27 @@ test.describe('Authenticated Session Flow', () => {
   })
 
   test('should create session and display join code', async ({ page }) => {
-    // First check if we already have a session
-    await page.goto('/session')
+    // First go to sessions list
+    await page.goto('/sessions')
     await page.waitForTimeout(2000)
 
-    const currentUrl = page.url()
+    // Check if we already have sessions
+    const hasExistingSessions = await page.evaluate(() => {
+      const text = document.body.innerText.toLowerCase()
+      return text.includes('waiting') ||
+             text.includes('active') ||
+             text.includes('swipe') ||
+             text.includes('partner')
+    })
 
-    // If we're on /session (not /dashboard), we have an active session
-    if (currentUrl.includes('/session') && !currentUrl.includes('/create') && !currentUrl.includes('/join') && !currentUrl.includes('/dashboard')) {
-      // Already have a session - verify it shows session content
+    if (hasExistingSessions) {
+      // Already have a session - click on it to see details
+      const sessionCard = page.locator('[class*="card"]').first()
+      if (await sessionCard.isVisible()) {
+        await sessionCard.click()
+        await page.waitForTimeout(1000)
+      }
+      // Verify we're on a session detail page
       const hasSessionContent = await page.evaluate(() => {
         const text = document.body.innerText.toLowerCase()
         return text.includes('waiting') ||
@@ -53,22 +65,10 @@ test.describe('Authenticated Session Flow', () => {
     await page.getByRole('button', { name: /girl names/i }).click()
     await page.getByRole('button', { name: /build nest/i }).click()
 
-    // Wait for navigation or error
+    // Wait for navigation to session detail page
     await page.waitForTimeout(3000)
 
-    // Check if we got an error (session already exists)
-    const hasError = await page.evaluate(() => {
-      const text = document.body.innerText.toLowerCase()
-      return text.includes('already') || text.includes('failed')
-    })
-
-    if (hasError) {
-      // Session may already exist from another test run - just go to session page
-      await page.goto('/session')
-      await page.waitForTimeout(1000)
-    }
-
-    // Should now be on session page or have session content
+    // Should now be on session detail page
     const hasSessionContent = await page.evaluate(() => {
       const text = document.body.innerText.toLowerCase()
       return text.includes('waiting') ||
@@ -98,12 +98,16 @@ test.describe('Authenticated Session Flow', () => {
   })
 })
 
-test.describe('Dashboard Session State', () => {
-  test('should show create/join options when no active session', async ({ page }) => {
-    await page.goto('/dashboard')
+test.describe('Sessions List View', () => {
+  test('should show sessions list or empty state', async ({ page }) => {
+    await page.goto('/sessions')
 
-    // Look for the specific section headings on the dashboard
-    await expect(page.getByRole('heading', { name: /start a new session/i })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /join a session/i })).toBeVisible()
+    // Should show either sessions or empty state with create option
+    const pageText = await page.evaluate(() => document.body.innerText.toLowerCase())
+    const hasSessionsContent = pageText.includes('session') ||
+                               pageText.includes('create') ||
+                               pageText.includes('start') ||
+                               pageText.includes('no sessions')
+    expect(hasSessionsContent).toBeTruthy()
   })
 })

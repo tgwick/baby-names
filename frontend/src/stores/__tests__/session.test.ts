@@ -346,7 +346,7 @@ describe('Session Store', () => {
 
       const result = await store.fetchNextName()
 
-      expect(api.get).toHaveBeenCalledWith('/names/next')
+      expect(api.get).toHaveBeenCalledWith('/names/next', { params: { sessionId: 'session-123' } })
       expect(store.currentName).toEqual(mockName)
       expect(result).toEqual(mockName)
       expect(store.noMoreNames).toBe(false)
@@ -473,7 +473,7 @@ describe('Session Store', () => {
 
       const result = await store.submitVote(1, VoteType.Like)
 
-      expect(api.post).toHaveBeenCalledWith('/votes', { nameId: 1, voteType: VoteType.Like })
+      expect(api.post).toHaveBeenCalledWith('/votes', { nameId: 1, voteType: VoteType.Like, sessionId: 'session-123' })
       expect(result).toEqual(mockVoteResult)
       expect(store.newMatch).toBeNull()
     })
@@ -577,7 +577,7 @@ describe('Session Store', () => {
 
       await store.fetchMatches()
 
-      expect(api.get).toHaveBeenCalledWith('/votes/matches')
+      expect(api.get).toHaveBeenCalledWith('/votes/matches', { params: { sessionId: 'session-123' } })
       expect(store.matches).toEqual(mockMatches)
     })
   })
@@ -608,7 +608,7 @@ describe('Session Store', () => {
 
       await store.fetchStats()
 
-      expect(api.get).toHaveBeenCalledWith('/votes/stats')
+      expect(api.get).toHaveBeenCalledWith('/votes/stats', { params: { sessionId: 'session-123' } })
       expect(store.stats).toEqual(mockStats)
     })
   })
@@ -723,7 +723,7 @@ describe('Session Store', () => {
 
       await store.fetchConflicts()
 
-      expect(api.get).toHaveBeenCalledWith('/conflicts')
+      expect(api.get).toHaveBeenCalledWith('/conflicts', { params: { sessionId: 'session-123' } })
       expect(store.conflicts).toEqual(mockConflicts)
     })
 
@@ -773,7 +773,7 @@ describe('Session Store', () => {
       const result = await store.clearDislike(1)
 
       expect(result).toBe(true)
-      expect(api.post).toHaveBeenCalledWith('/conflicts/1/clear')
+      expect(api.post).toHaveBeenCalledWith('/conflicts/1/clear', null, { params: { sessionId: 'session-123' } })
       expect(store.conflicts).toHaveLength(1)
       expect(store.conflicts[0]!.nameId).toBe(2)
     })

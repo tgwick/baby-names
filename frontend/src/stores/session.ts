@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Session, CreateSessionRequest } from '@/types/session'
+import type { Session, CreateSessionRequest, SessionListItem, SessionListResponse } from '@/types/session'
 import type { Name } from '@/types/name'
 import type { Match, VoteStats, VoteResult, Conflict } from '@/types/vote'
 import { SessionStatus, Gender } from '@/types/session'
@@ -8,6 +8,12 @@ import { VoteType } from '@/types/vote'
 import api from '@/services/api'
 
 export const useSessionStore = defineStore('session', () => {
+  // Multi-session state
+  const sessions = ref<SessionListItem[]>([])
+  const archivedCount = ref(0)
+  const showArchived = ref(false)
+
+  // Current session state
   const session = ref<Session | null>(null)
   const currentName = ref<Name | null>(null)
   const loading = ref(false)
@@ -35,13 +41,124 @@ export const useSessionStore = defineStore('session', () => {
     return `${window.location.origin}/join/${session.value.partnerLink}`
   })
 
-  async function createSession(targetGender: Gender) {
+  // Active sessions (non-archived)
+  const activeSessions = computed(() => sessions.value.filter((s) => !s.isArchived))
+
+  // Archived sessions
+  const archivedSessions = computed(() => sessions.value.filter((s) => s.isArchived))
+
+  // Get session ID (helper for API calls)
+  const sessionId = computed(() => session.value?.id || null)
+
+  async function fetchSessions(includeArchived = false) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.get('/sessions', { params: { includeArchived } })
+      const data: SessionListResponse = response.data.data
+      sessions.value = data.sessions
+      archivedCount.value = data.archivedCount
+    } catch (e: any) {
+      error.value = e.response?.data?.errors?.[0] || 'Failed to fetch sessions'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function setActiveSession(sessionIdToSet: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.get(`/sessions/${sessionIdToSet}`)
+      session.value = response.data.data
+      // Clear previous session data
+      currentName.value = null
+      noMoreNames.value = false
+      matches.value = []
+      stats.value = null
+      conflicts.value = []
+    } catch (e: any) {
+      error.value = e.response?.data?.errors?.[0] || 'Failed to fetch session'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function archiveSession(sessionIdToArchive: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.patch(`/sessions/${sessionIdToArchive}/archive`)
+      const archivedSession: Session = response.data.data
+      // Update the session in the list
+      const index = sessions.value.findIndex((s) => s.id === sessionIdToArchive)
+      if (index !== -1 && sessions.value[index]) {
+        sessions.value[index].isArchived = true
+      }
+      // Update archivedCount
+      archivedCount.value++
+      // If the current session was archived, update it
+      if (session.value?.id === sessionIdToArchive) {
+        session.value = archivedSession
+      }
+      return archivedSession
+    } catch (e: any) {
+      error.value = e.response?.data?.errors?.[0] || 'Failed to archive session'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function unarchiveSession(sessionIdToUnarchive: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.patch(`/sessions/${sessionIdToUnarchive}/unarchive`)
+      const unarchivedSession: Session = response.data.data
+      // Update the session in the list
+      const index = sessions.value.findIndex((s) => s.id === sessionIdToUnarchive)
+      if (index !== -1 && sessions.value[index]) {
+        sessions.value[index].isArchived = false
+      }
+      // Update archivedCount
+      archivedCount.value = Math.max(0, archivedCount.value - 1)
+      // If the current session was unarchived, update it
+      if (session.value?.id === sessionIdToUnarchive) {
+        session.value = unarchivedSession
+      }
+      return unarchivedSession
+    } catch (e: any) {
+      error.value = e.response?.data?.errors?.[0] || 'Failed to unarchive session'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createSession(targetGender: Gender): Promise<Session> {
     loading.value = true
     error.value = null
     try {
       const request: CreateSessionRequest = { targetGender }
       const response = await api.post('/sessions', request)
       session.value = response.data.data
+      // Add to sessions list
+      if (session.value) {
+        sessions.value.unshift({
+          id: session.value.id,
+          partnerDisplayName: null,
+          createdAt: session.value.createdAt,
+          status: session.value.status,
+          isArchived: false,
+          targetGender: session.value.targetGender,
+          matchCount: 0,
+          voteCount: 0,
+          isInitiator: true,
+        })
+      }
+      return session.value!
     } catch (e: any) {
       error.value = e.response?.data?.errors?.[0] || 'Failed to create session'
       throw e
@@ -50,12 +167,13 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  async function joinByCode(joinCode: string) {
+  async function joinByCode(joinCode: string): Promise<Session> {
     loading.value = true
     error.value = null
     try {
       const response = await api.post('/sessions/join', { joinCode: joinCode.toUpperCase() })
       session.value = response.data.data
+      return session.value!
     } catch (e: any) {
       error.value = e.response?.data?.errors?.[0] || 'Failed to join session'
       throw e
@@ -64,12 +182,13 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  async function joinByLink(partnerLink: string) {
+  async function joinByLink(partnerLink: string): Promise<Session> {
     loading.value = true
     error.value = null
     try {
       const response = await api.get(`/sessions/join/${partnerLink}`)
       session.value = response.data.data
+      return session.value!
     } catch (e: any) {
       error.value = e.response?.data?.errors?.[0] || 'Failed to join session'
       throw e
@@ -120,7 +239,7 @@ export const useSessionStore = defineStore('session', () => {
     nameLoading.value = true
     error.value = null
     try {
-      const response = await api.get('/names/next')
+      const response = await api.get('/names/next', { params: { sessionId: session.value.id } })
       if (response.data.data) {
         currentName.value = response.data.data
         noMoreNames.value = false
@@ -145,7 +264,7 @@ export const useSessionStore = defineStore('session', () => {
     error.value = null
     newMatch.value = null
     try {
-      const response = await api.post('/votes', { nameId, voteType })
+      const response = await api.post('/votes', { sessionId: session.value.id, nameId, voteType })
       const result: VoteResult = response.data.data
 
       // If it's a match, update matches and set newMatch for celebration
@@ -181,7 +300,7 @@ export const useSessionStore = defineStore('session', () => {
     if (!session.value || !isActive.value) return
 
     try {
-      const response = await api.get('/votes/matches')
+      const response = await api.get('/votes/matches', { params: { sessionId: session.value.id } })
       matches.value = response.data.data || []
     } catch (e: any) {
       error.value = e.response?.data?.errors?.[0] || 'Failed to fetch matches'
@@ -192,7 +311,7 @@ export const useSessionStore = defineStore('session', () => {
     if (!session.value || !isActive.value) return
 
     try {
-      const response = await api.get('/votes/stats')
+      const response = await api.get('/votes/stats', { params: { sessionId: session.value.id } })
       stats.value = response.data.data
     } catch (e: any) {
       error.value = e.response?.data?.errors?.[0] || 'Failed to fetch stats'
@@ -208,7 +327,7 @@ export const useSessionStore = defineStore('session', () => {
 
     conflictLoading.value = true
     try {
-      const response = await api.get('/conflicts')
+      const response = await api.get('/conflicts', { params: { sessionId: session.value.id } })
       conflicts.value = response.data.data || []
     } catch (e: any) {
       error.value = e.response?.data?.errors?.[0] || 'Failed to fetch conflicts'
@@ -223,7 +342,7 @@ export const useSessionStore = defineStore('session', () => {
     conflictLoading.value = true
     error.value = null
     try {
-      await api.post(`/conflicts/${nameId}/clear`)
+      await api.post(`/conflicts/${nameId}/clear`, null, { params: { sessionId: session.value.id } })
       // Remove the conflict from the list
       conflicts.value = conflicts.value.filter((c) => c.nameId !== nameId)
       return true
@@ -236,7 +355,11 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   return {
-    // State
+    // Multi-session state
+    sessions,
+    archivedCount,
+    showArchived,
+    // Current session state
     session,
     currentName,
     loading,
@@ -255,6 +378,14 @@ export const useSessionStore = defineStore('session', () => {
     isActive,
     isCompleted,
     shareableLink,
+    activeSessions,
+    archivedSessions,
+    sessionId,
+    // Multi-session actions
+    fetchSessions,
+    setActiveSession,
+    archiveSession,
+    unarchiveSession,
     // Session actions
     createSession,
     joinByCode,

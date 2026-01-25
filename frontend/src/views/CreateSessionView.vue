@@ -45,8 +45,8 @@ async function handleCreate() {
   loading.value = true
 
   try {
-    await sessionStore.createSession(selectedGender.value)
-    router.push('/session')
+    const newSession = await sessionStore.createSession(selectedGender.value)
+    router.push(`/sessions/${newSession.id}`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { errors?: string[] } } }
     error.value = err.response?.data?.errors?.[0] || 'Failed to create session. Please try again.'
@@ -134,10 +134,10 @@ async function handleCreate() {
 
       <!-- Cancel Link -->
       <RouterLink
-        to="/dashboard"
+        to="/sessions"
         class="block mt-6 text-center text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors"
       >
-        ← Back to Dashboard
+        ← Back to Sessions
       </RouterLink>
     </div>
   </div>

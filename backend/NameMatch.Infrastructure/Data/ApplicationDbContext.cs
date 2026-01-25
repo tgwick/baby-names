@@ -46,6 +46,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.PartnerLink).IsUnique();
             entity.HasIndex(e => e.InitiatorId);
             entity.HasIndex(e => e.PartnerId);
+            entity.HasIndex(e => new { e.InitiatorId, e.IsArchived });
+            entity.HasIndex(e => new { e.PartnerId, e.IsArchived });
         });
 
         builder.Entity<Vote>(entity =>

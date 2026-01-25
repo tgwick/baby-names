@@ -20,6 +20,9 @@
   --color-sky: #A8D4E6;
   --color-lavender: #D4C4E8;
   --color-mint: #B8E0D2;
+  --color-sage: #7ab07a;
+  --color-sage-light: #d4e5d4;
+  --color-sage-dark: #5a8a5a;
 
   /* Gradients */
   --gradient-warm: linear-gradient(135deg, #FFE5E0 0%, #FFD4CC 50%, #FFEAD4 100%);

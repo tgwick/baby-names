@@ -28,8 +28,8 @@ onMounted(async () => {
   }
 
   try {
-    await sessionStore.joinByLink(partnerLink)
-    router.push('/session')
+    const joinedSession = await sessionStore.joinByLink(partnerLink)
+    router.push(`/sessions/${joinedSession.id}`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { errors?: string[] } } }
     error.value = err.response?.data?.errors?.[0] || 'Failed to join session. The link may be invalid or expired.'
@@ -80,8 +80,8 @@ onMounted(async () => {
           <RouterLink to="/session/join" class="btn-primary">
             <span>Try with Code</span>
           </RouterLink>
-          <RouterLink to="/dashboard" class="btn-secondary">
-            Go to Dashboard
+          <RouterLink to="/sessions" class="btn-secondary">
+            Go to Sessions
           </RouterLink>
         </div>
       </template>

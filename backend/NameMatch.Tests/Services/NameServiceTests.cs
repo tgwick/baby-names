@@ -23,14 +23,15 @@ public class NameServiceTests
     }
 
     [Fact]
-    public async Task GetNextUnvotedNameAsync_ReturnsNull_WhenNoActiveSession()
+    public async Task GetNextUnvotedNameAsync_ReturnsNull_WhenSessionNotFound()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
         var service = new NameService(context, CreateMockFilterService());
+        var nonExistentSessionId = Guid.NewGuid();
 
         // Act
-        var result = await service.GetNextUnvotedNameAsync("user-123");
+        var result = await service.GetNextUnvotedNameAsync("user-123", nonExistentSessionId);
 
         // Assert
         result.Should().BeNull();
@@ -69,7 +70,7 @@ public class NameServiceTests
         var service = new NameService(context, CreateMockFilterService());
 
         // Act
-        var result = await service.GetNextUnvotedNameAsync(userId);
+        var result = await service.GetNextUnvotedNameAsync(userId, session.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -110,7 +111,7 @@ public class NameServiceTests
         var results = new HashSet<string>();
         for (int i = 0; i < 20; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null) results.Add(name.NameText);
         }
 
@@ -154,7 +155,7 @@ public class NameServiceTests
         var results = new HashSet<string>();
         for (int i = 0; i < 20; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null) results.Add(name.NameText);
         }
 
@@ -207,7 +208,7 @@ public class NameServiceTests
         var results = new HashSet<string>();
         for (int i = 0; i < 10; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null) results.Add(name.NameText);
         }
 
@@ -255,7 +256,7 @@ public class NameServiceTests
         var service = new NameService(context, CreateMockFilterService());
 
         // Act
-        var result = await service.GetNextUnvotedNameAsync(userId);
+        var result = await service.GetNextUnvotedNameAsync(userId, session.Id);
 
         // Assert
         result.Should().BeNull();
@@ -289,7 +290,7 @@ public class NameServiceTests
         var service = new NameService(context, CreateMockFilterService());
 
         // Act - Partner should be able to get names
-        var result = await service.GetNextUnvotedNameAsync(partnerId);
+        var result = await service.GetNextUnvotedNameAsync(partnerId, session.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -416,7 +417,7 @@ public class NameServiceTests
         var counts = new Dictionary<string, int> { ["William"] = 0, ["Zephyr"] = 0 };
         for (int i = 0; i < 100; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null && counts.ContainsKey(name.NameText))
             {
                 counts[name.NameText]++;
@@ -486,7 +487,7 @@ public class NameServiceTests
         var counts = new Dictionary<string, int> { ["Emma"] = 0, ["Xenobia"] = 0 };
         for (int i = 0; i < 100; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null && counts.ContainsKey(name.NameText))
             {
                 counts[name.NameText]++;
@@ -561,7 +562,7 @@ public class NameServiceTests
         var foundTrendy = false;
         for (int i = 0; i < 50; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name?.NameText == "Jaxon")
             {
                 foundTrendy = true;
@@ -633,7 +634,7 @@ public class NameServiceTests
         var counts = new Dictionary<string, int> { ["William"] = 0, ["Zephyr"] = 0 };
         for (int i = 0; i < 100; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null && counts.ContainsKey(name.NameText))
             {
                 counts[name.NameText]++;
@@ -708,7 +709,7 @@ public class NameServiceTests
         var counts = new Dictionary<string, int> { ["David"] = 0, ["Zephyr"] = 0 };
         for (int i = 0; i < 500; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null && counts.ContainsKey(name.NameText))
             {
                 counts[name.NameText]++;
@@ -774,7 +775,7 @@ public class NameServiceTests
         var service = new NameService(context, CreateMockFilterService());
 
         // Act - Should work without throwing
-        var name = await service.GetNextUnvotedNameAsync(userId);
+        var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
 
         // Assert
         name.Should().NotBeNull();
@@ -853,7 +854,7 @@ public class NameServiceTests
         var foundNames = new HashSet<string>();
         for (int i = 0; i < 50; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null) foundNames.Add(name.NameText);
         }
 
@@ -978,7 +979,7 @@ public class NameServiceTests
         var counts = new Dictionary<string, int> { ["William"] = 0, ["Wade"] = 0 };
         for (int i = 0; i < 500; i++)
         {
-            var name = await service.GetNextUnvotedNameAsync(userId);
+            var name = await service.GetNextUnvotedNameAsync(userId, session.Id);
             if (name != null && counts.ContainsKey(name.NameText))
             {
                 counts[name.NameText]++;

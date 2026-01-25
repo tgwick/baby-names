@@ -40,12 +40,12 @@ public class FiltersController : ControllerBase
     }
 
     /// <summary>
-    /// Submit filter answers for the current session.
+    /// Submit filter answers for the specified session.
     /// </summary>
-    /// <param name="request">Filter answers.</param>
+    /// <param name="request">Filter answers including session ID.</param>
     /// <returns>Updated filter status.</returns>
     /// <response code="200">Filters saved successfully.</response>
-    /// <response code="400">No active session or invalid request.</response>
+    /// <response code="400">Session not found or invalid request.</response>
     /// <response code="401">User not authenticated.</response>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<SessionFiltersStatusDto>), StatusCodes.Status200OK)]
@@ -59,7 +59,7 @@ public class FiltersController : ControllerBase
 
         try
         {
-            var status = await _filterService.SubmitFiltersAsync(userId, request);
+            var status = await _filterService.SubmitFiltersAsync(userId, request.SessionId, request);
             return Ok(ApiResponse<SessionFiltersStatusDto>.Ok(status, "Filters saved successfully"));
         }
         catch (InvalidOperationException ex)
@@ -69,32 +69,34 @@ public class FiltersController : ControllerBase
     }
 
     /// <summary>
-    /// Get the filter completion status for the current session.
+    /// Get the filter completion status for the specified session.
     /// </summary>
+    /// <param name="sessionId">The session ID.</param>
     /// <returns>Status showing if both partners have completed filters.</returns>
     /// <response code="200">Status retrieved successfully.</response>
     /// <response code="401">User not authenticated.</response>
-    /// <response code="404">No active session found.</response>
+    /// <response code="404">Session not found.</response>
     [HttpGet("status")]
     [ProducesResponseType(typeof(ApiResponse<SessionFiltersStatusDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<SessionFiltersStatusDto>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<SessionFiltersStatusDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ApiResponse<SessionFiltersStatusDto>>> GetFiltersStatus()
+    public async Task<ActionResult<ApiResponse<SessionFiltersStatusDto>>> GetFiltersStatus([FromQuery] Guid sessionId)
     {
         var userId = GetUserId();
         if (userId == null)
             return Unauthorized(ApiResponse<SessionFiltersStatusDto>.Fail("User not found"));
 
-        var status = await _filterService.GetFiltersStatusAsync(userId);
+        var status = await _filterService.GetFiltersStatusAsync(userId, sessionId);
         if (status == null)
-            return NotFound(ApiResponse<SessionFiltersStatusDto>.Fail("No active session found"));
+            return NotFound(ApiResponse<SessionFiltersStatusDto>.Fail("Session not found"));
 
         return Ok(ApiResponse<SessionFiltersStatusDto>.Ok(status));
     }
 
     /// <summary>
-    /// Get the current user's filters for their active session.
+    /// Get the current user's filters for the specified session.
     /// </summary>
+    /// <param name="sessionId">The session ID.</param>
     /// <returns>User's filter settings.</returns>
     /// <response code="200">Filters retrieved successfully.</response>
     /// <response code="401">User not authenticated.</response>
@@ -103,13 +105,13 @@ public class FiltersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<UserFiltersDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<UserFiltersDto>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<UserFiltersDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ApiResponse<UserFiltersDto>>> GetMyFilters()
+    public async Task<ActionResult<ApiResponse<UserFiltersDto>>> GetMyFilters([FromQuery] Guid sessionId)
     {
         var userId = GetUserId();
         if (userId == null)
             return Unauthorized(ApiResponse<UserFiltersDto>.Fail("User not found"));
 
-        var filters = await _filterService.GetUserFiltersAsync(userId);
+        var filters = await _filterService.GetUserFiltersAsync(userId, sessionId);
         if (filters == null)
             return NotFound(ApiResponse<UserFiltersDto>.Fail("No filters found for this session"));
 

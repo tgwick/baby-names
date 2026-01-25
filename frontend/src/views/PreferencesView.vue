@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useFiltersStore } from '@/stores/filters'
 import { useSessionStore } from '@/stores/session'
 import FilterQuestionnaire from '@/components/FilterQuestionnaire.vue'
 
 const router = useRouter()
+const route = useRoute()
 const filtersStore = useFiltersStore()
 const sessionStore = useSessionStore()
+
+const sessionId = computed(() => route.params.sessionId as string)
 
 const submitting = ref(false)
 const submitted = ref(false)
@@ -29,21 +32,19 @@ const stepEmoji = computed(() => {
 })
 
 onMounted(async () => {
-  // Fetch session if not loaded
-  if (!sessionStore.session) {
-    await sessionStore.fetchCurrentSession()
-  }
+  // Fetch session
+  await sessionStore.setActiveSession(sessionId.value)
 
   // Redirect if no active session
   if (!sessionStore.session) {
-    router.push('/dashboard')
+    router.push('/sessions')
     return
   }
 
   // Fetch filter questions and status
   await Promise.all([
     filtersStore.fetchQuestions(),
-    filtersStore.fetchStatus(),
+    filtersStore.fetchStatus(sessionId.value),
   ])
 
   // Check if already completed
@@ -55,7 +56,7 @@ onMounted(async () => {
   if (filtersCompleted) {
     // Already completed, show summary
     submitted.value = true
-    await filtersStore.fetchUserFilters()
+    await filtersStore.fetchUserFilters(sessionId.value)
   }
 })
 
@@ -64,12 +65,12 @@ async function handleFiltersComplete() {
   error.value = ''
 
   try {
-    await filtersStore.submitFilters()
+    await filtersStore.submitFilters(sessionId.value)
     submitted.value = true
 
     // Refresh session to get updated status
     await sessionStore.refreshSession()
-    await filtersStore.fetchUserFilters()
+    await filtersStore.fetchUserFilters(sessionId.value)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { errors?: string[] } } }
     error.value = err.response?.data?.errors?.[0] || 'Failed to save filters. Please try again.'
@@ -79,7 +80,11 @@ async function handleFiltersComplete() {
 }
 
 function handleContinue() {
-  router.push('/session')
+  if (filtersStore.status?.bothCompleted) {
+    router.push(`/sessions/${sessionId.value}/swipe`)
+  } else {
+    router.push(`/sessions/${sessionId.value}`)
+  }
 }
 
 function handleStartOver() {
@@ -198,13 +203,13 @@ function getSyllableLabel(min: number | null, max: number | null): string {
       />
 
       <!-- Back link -->
-      <RouterLink
+      <button
         v-if="!submitted && !submitting"
-        to="/session"
-        class="block mt-6 text-center text-sm text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors"
+        @click="router.push(`/sessions/${sessionId}`)"
+        class="block w-full mt-6 text-center text-sm text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors"
       >
         ← Skip for now
-      </RouterLink>
+      </button>
     </div>
   </div>
 </template>

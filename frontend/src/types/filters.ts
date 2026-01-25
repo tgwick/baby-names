@@ -23,6 +23,7 @@ export interface FilterAnswer {
 }
 
 export interface SubmitFiltersRequest {
+  sessionId: string
   answers: FilterAnswer[]
 }
 
