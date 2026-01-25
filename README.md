@@ -168,6 +168,54 @@ cd frontend && npm run test:run
 cd frontend && npm run e2e
 ```
 
+## Deploying to Production
+
+Production deployments are done via **GitHub Releases**. This provides version history, release notes, and automatic deployment.
+
+### Prerequisites
+- Changes must be merged to `main`
+- Dev deployment must have run successfully (verify at dev.hatchaname.com)
+
+### Creating a Release (GitHub UI)
+
+1. Go to [Releases](https://github.com/tgwick/baby-names/releases)
+2. Click **"Draft a new release"**
+3. Click **"Choose a tag"** → type version (e.g., `v1.0.0`) → **"Create new tag"**
+4. Leave **Target** as `main`
+5. Add a **title** (e.g., `v1.0.0 - Feature Name`)
+6. Add **release notes** describing the changes
+7. Click **"Publish release"**
+
+This automatically triggers the production deployment workflow.
+
+### Creating a Release (CLI)
+
+```bash
+gh release create v1.0.0 \
+  --title "v1.0.0 - Feature Name" \
+  --notes "- Change 1
+- Change 2"
+```
+
+### Versioning
+
+Use [semantic versioning](https://semver.org/):
+- **v1.0.0** → Major release (breaking changes)
+- **v1.1.0** → Minor release (new features)
+- **v1.1.1** → Patch release (bug fixes)
+
+### Troubleshooting
+
+If a release deployment fails:
+1. Check if the dev deployment ran after merging (images are built during dev deploy)
+2. Verify the tag points to the correct commit: `git rev-parse v1.0.0`
+3. If the tag is wrong, delete and recreate:
+   ```bash
+   gh release delete v1.0.0 --yes
+   git push --delete origin v1.0.0
+   # Then create a new release
+   ```
+
 ## Infrastructure
 
 See [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) for:
