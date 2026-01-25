@@ -24,24 +24,25 @@ public class ConflictsController : ControllerBase
     }
 
     /// <summary>
-    /// Get all conflicts for the current session.
+    /// Get all conflicts for the specified session.
     /// </summary>
     /// <remarks>
     /// A conflict occurs when one user likes a name and the other dislikes it.
     /// </remarks>
+    /// <param name="sessionId">The session ID.</param>
     /// <returns>List of conflicting names with details about who liked/disliked.</returns>
     /// <response code="200">Conflicts retrieved successfully.</response>
     /// <response code="401">User not authenticated.</response>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ConflictDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ConflictDto>>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<ConflictDto>>>> GetConflicts()
+    public async Task<ActionResult<ApiResponse<IEnumerable<ConflictDto>>>> GetConflicts([FromQuery] Guid sessionId)
     {
         var userId = GetUserId();
         if (userId == null)
             return Unauthorized(ApiResponse<IEnumerable<ConflictDto>>.Fail("User not found"));
 
-        var conflicts = await _voteService.GetConflictsAsync(userId);
+        var conflicts = await _voteService.GetConflictsAsync(userId, sessionId);
         return Ok(ApiResponse<IEnumerable<ConflictDto>>.Ok(conflicts));
     }
 
@@ -53,6 +54,7 @@ public class ConflictsController : ControllerBase
     /// Only the user who disliked the name can clear their vote.
     /// </remarks>
     /// <param name="nameId">The ID of the name to clear the dislike vote for.</param>
+    /// <param name="sessionId">The session ID.</param>
     /// <returns>True if the dislike was cleared successfully.</returns>
     /// <response code="200">Dislike cleared successfully.</response>
     /// <response code="400">Vote not found or not a dislike vote.</response>
@@ -61,7 +63,7 @@ public class ConflictsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<bool>>> ClearDislike(int nameId)
+    public async Task<ActionResult<ApiResponse<bool>>> ClearDislike(int nameId, [FromQuery] Guid sessionId)
     {
         var userId = GetUserId();
         if (userId == null)
@@ -69,7 +71,7 @@ public class ConflictsController : ControllerBase
 
         try
         {
-            var result = await _voteService.ClearDislikeAsync(userId, nameId);
+            var result = await _voteService.ClearDislikeAsync(userId, sessionId, nameId);
             return Ok(ApiResponse<bool>.Ok(result));
         }
         catch (InvalidOperationException ex)

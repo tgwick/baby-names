@@ -21,18 +21,69 @@ const router = createRouter({
       component: () => import('@/views/RegisterView.vue'),
       meta: { guest: true },
     },
+    // New multi-session routes
+    {
+      path: '/sessions',
+      name: 'sessions',
+      component: () => import('@/views/SessionListView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/sessions/:sessionId',
+      name: 'session-detail',
+      component: () => import('@/views/SessionDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/sessions/:sessionId/swipe',
+      name: 'session-swipe',
+      component: () => import('@/views/SwipeView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/sessions/:sessionId/matches',
+      name: 'session-matches',
+      component: () => import('@/views/MatchesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/sessions/:sessionId/conflicts',
+      name: 'session-conflicts',
+      component: () => import('@/views/ConflictsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/sessions/:sessionId/preferences',
+      name: 'session-preferences',
+      component: () => import('@/views/PreferencesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    // Legacy routes - redirect to new structure
     {
       path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/views/DashboardView.vue'),
-      meta: { requiresAuth: true },
+      redirect: '/sessions',
     },
     {
       path: '/session',
-      name: 'session',
-      component: () => import('@/views/SessionView.vue'),
-      meta: { requiresAuth: true },
+      redirect: '/sessions',
     },
+    {
+      path: '/swipe',
+      redirect: '/sessions',
+    },
+    {
+      path: '/matches',
+      redirect: '/sessions',
+    },
+    {
+      path: '/conflicts',
+      redirect: '/sessions',
+    },
+    {
+      path: '/preferences',
+      redirect: '/sessions',
+    },
+    // Session creation/joining (still at old paths)
     {
       path: '/session/create',
       name: 'create-session',
@@ -50,30 +101,6 @@ const router = createRouter({
       name: 'join-link',
       component: () => import('@/views/JoinLinkView.vue'),
     },
-    {
-      path: '/preferences',
-      name: 'preferences',
-      component: () => import('@/views/PreferencesView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/swipe',
-      name: 'swipe',
-      component: () => import('@/views/SwipeView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/matches',
-      name: 'matches',
-      component: () => import('@/views/MatchesView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/conflicts',
-      name: 'conflicts',
-      component: () => import('@/views/ConflictsView.vue'),
-      meta: { requiresAuth: true },
-    },
   ],
 })
 
@@ -83,7 +110,7 @@ router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
   } else if (to.meta.guest && authStore.isAuthenticated) {
-    next({ name: 'dashboard' })
+    next({ name: 'sessions' })
   } else {
     next()
   }

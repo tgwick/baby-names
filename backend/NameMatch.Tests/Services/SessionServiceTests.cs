@@ -50,35 +50,6 @@ public class SessionServiceTests
     }
 
     [Fact]
-    public async Task CreateSessionAsync_ThrowsException_WhenUserHasActiveSession()
-    {
-        // Arrange
-        using var context = TestDbContextFactory.Create();
-        var userId = "user-123";
-
-        // Create an existing active session
-        context.Sessions.Add(new Session
-        {
-            Id = Guid.NewGuid(),
-            InitiatorId = userId,
-            TargetGender = Gender.Male,
-            JoinCode = "ABC123",
-            PartnerLink = "link123",
-            Status = SessionStatus.WaitingForPartner,
-            CreatedAt = DateTime.UtcNow
-        });
-        await context.SaveChangesAsync();
-
-        var service = new SessionService(context, _userManagerMock.Object);
-        var request = new CreateSessionRequest { TargetGender = Gender.Female };
-
-        // Act & Assert
-        var act = () => service.CreateSessionAsync(userId, request);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*already have an active session*");
-    }
-
-    [Fact]
     public async Task JoinByCodeAsync_JoinsSession_Successfully()
     {
         // Arrange
@@ -220,47 +191,6 @@ public class SessionServiceTests
         var act = () => service.JoinByCodeAsync(newPartnerId, "ABC123");
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*already has a partner*");
-    }
-
-    [Fact]
-    public async Task JoinByCodeAsync_ThrowsException_WhenUserHasActiveSession()
-    {
-        // Arrange
-        using var context = TestDbContextFactory.Create();
-        var initiatorId = "initiator-123";
-        var partnerId = "partner-456";
-
-        // Session to join
-        context.Sessions.Add(new Session
-        {
-            Id = Guid.NewGuid(),
-            InitiatorId = initiatorId,
-            TargetGender = Gender.Female,
-            JoinCode = "ABC123",
-            PartnerLink = "link123",
-            Status = SessionStatus.WaitingForPartner,
-            CreatedAt = DateTime.UtcNow
-        });
-
-        // Partner's existing session
-        context.Sessions.Add(new Session
-        {
-            Id = Guid.NewGuid(),
-            InitiatorId = partnerId,
-            TargetGender = Gender.Male,
-            JoinCode = "XYZ789",
-            PartnerLink = "link789",
-            Status = SessionStatus.WaitingForPartner,
-            CreatedAt = DateTime.UtcNow
-        });
-        await context.SaveChangesAsync();
-
-        var service = new SessionService(context, _userManagerMock.Object);
-
-        // Act & Assert
-        var act = () => service.JoinByCodeAsync(partnerId, "ABC123");
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*already have an active session*");
     }
 
     [Fact]

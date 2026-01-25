@@ -52,13 +52,13 @@ export const useFiltersStore = defineStore('filters', () => {
     }
   }
 
-  async function fetchStatus() {
+  async function fetchStatus(sessionId: string) {
     try {
-      const response = await api.get('/filters/status')
+      const response = await api.get('/filters/status', { params: { sessionId } })
       status.value = response.data.data || null
     } catch (e: unknown) {
       const err = e as { response?: { status?: number; data?: { errors?: string[] } } }
-      // 404 means no active session, which is okay
+      // 404 means no session found, which is okay
       if (err.response?.status !== 404) {
         error.value = err.response?.data?.errors?.[0] || 'Failed to fetch filter status'
       }
@@ -66,9 +66,9 @@ export const useFiltersStore = defineStore('filters', () => {
     }
   }
 
-  async function fetchUserFilters() {
+  async function fetchUserFilters(sessionId: string) {
     try {
-      const response = await api.get('/filters/mine')
+      const response = await api.get('/filters/mine', { params: { sessionId } })
       userFilters.value = response.data.data || null
     } catch (e: unknown) {
       const err = e as { response?: { status?: number; data?: { errors?: string[] } } }
@@ -106,7 +106,7 @@ export const useFiltersStore = defineStore('filters', () => {
     }
   }
 
-  async function submitFilters(): Promise<SessionFiltersStatus | null> {
+  async function submitFilters(sessionId: string): Promise<SessionFiltersStatus | null> {
     submitting.value = true
     error.value = null
     try {
@@ -116,7 +116,7 @@ export const useFiltersStore = defineStore('filters', () => {
         answersArray.push({ questionId, selectedOptionId: optionId })
       })
 
-      const request: SubmitFiltersRequest = { answers: answersArray }
+      const request: SubmitFiltersRequest = { sessionId, answers: answersArray }
       const response = await api.post('/filters', request)
       status.value = response.data.data
       return status.value

@@ -37,6 +37,27 @@ export interface Session {
   initiatorFiltersCompleted: boolean
   partnerFiltersCompleted: boolean
   canStartVoting: boolean
+  // Archive tracking
+  isArchived: boolean
+  archivedAt: string | null
+}
+
+export interface SessionListItem {
+  id: string
+  partnerDisplayName: string | null
+  createdAt: string
+  status: SessionStatus
+  isArchived: boolean
+  targetGender: Gender
+  matchCount: number
+  voteCount: number
+  isInitiator: boolean
+}
+
+export interface SessionListResponse {
+  sessions: SessionListItem[]
+  totalCount: number
+  archivedCount: number
 }
 
 export interface CreateSessionRequest {

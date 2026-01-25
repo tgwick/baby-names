@@ -29,17 +29,6 @@ public class SessionService : ISessionService
 
         ArgumentNullException.ThrowIfNull(request);
 
-        // Check if user already has an active session
-        var existingSession = await _context.Sessions
-            .FirstOrDefaultAsync(s =>
-                (s.InitiatorId == userId || s.PartnerId == userId) &&
-                s.Status != SessionStatus.Completed);
-
-        if (existingSession != null)
-        {
-            throw new InvalidOperationException("You already have an active session. Complete or leave it before creating a new one.");
-        }
-
         var session = new Session
         {
             Id = Guid.NewGuid(),
@@ -149,17 +138,6 @@ public class SessionService : ISessionService
             throw new InvalidOperationException("This session already has a partner.");
         }
 
-        // Check if user already has an active session
-        var existingSession = await _context.Sessions
-            .FirstOrDefaultAsync(s =>
-                (s.InitiatorId == userId || s.PartnerId == userId) &&
-                s.Status != SessionStatus.Completed);
-
-        if (existingSession != null)
-        {
-            throw new InvalidOperationException("You already have an active session. Complete or leave it before joining a new one.");
-        }
-
         session.PartnerId = userId;
         session.Status = SessionStatus.Active;
         session.LinkedAt = DateTime.UtcNow;
@@ -213,7 +191,156 @@ public class SessionService : ISessionService
             InitiatorPrefsCompleted = session.InitiatorPrefsCompletedAt.HasValue,
             PartnerPrefsCompleted = session.PartnerPrefsCompletedAt.HasValue,
             InitiatorFiltersCompleted = session.InitiatorFiltersCompletedAt.HasValue,
-            PartnerFiltersCompleted = session.PartnerFiltersCompletedAt.HasValue
+            PartnerFiltersCompleted = session.PartnerFiltersCompletedAt.HasValue,
+            IsArchived = session.IsArchived,
+            ArchivedAt = session.ArchivedAt
         };
+    }
+
+    public async Task<SessionListResponseDto> GetUserSessionsAsync(string userId, bool includeArchived = false)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        var query = _context.Sessions
+            .Where(s => s.InitiatorId == userId || s.PartnerId == userId);
+
+        if (!includeArchived)
+        {
+            query = query.Where(s => !s.IsArchived);
+        }
+
+        var sessions = await query
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync();
+
+        var archivedCount = await _context.Sessions
+            .Where(s => (s.InitiatorId == userId || s.PartnerId == userId) && s.IsArchived)
+            .CountAsync();
+
+        var sessionItems = new List<SessionListItemDto>();
+
+        foreach (var session in sessions)
+        {
+            var partnerId = session.InitiatorId == userId ? session.PartnerId : session.InitiatorId;
+            string? partnerDisplayName = null;
+
+            if (partnerId != null)
+            {
+                var partner = await _userManager.FindByIdAsync(partnerId);
+                partnerDisplayName = partner?.DisplayName ?? partner?.Email;
+            }
+
+            // Get match count for this session
+            var matchCount = await GetMatchCountForSessionAsync(session);
+
+            // Get vote count for this user in this session
+            var voteCount = await _context.Votes
+                .Where(v => v.UserId == userId && v.SessionId == session.Id)
+                .CountAsync();
+
+            sessionItems.Add(new SessionListItemDto
+            {
+                Id = session.Id,
+                PartnerDisplayName = partnerDisplayName,
+                CreatedAt = session.CreatedAt,
+                Status = session.Status,
+                IsArchived = session.IsArchived,
+                TargetGender = session.TargetGender,
+                MatchCount = matchCount,
+                VoteCount = voteCount,
+                IsInitiator = session.InitiatorId == userId
+            });
+        }
+
+        return new SessionListResponseDto
+        {
+            Sessions = sessionItems,
+            TotalCount = sessionItems.Count,
+            ArchivedCount = archivedCount
+        };
+    }
+
+    public async Task<SessionDto> ArchiveSessionAsync(Guid sessionId, string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        var session = await _context.Sessions
+            .FirstOrDefaultAsync(s => s.Id == sessionId &&
+                (s.InitiatorId == userId || s.PartnerId == userId));
+
+        if (session == null)
+        {
+            throw new InvalidOperationException("Session not found.");
+        }
+
+        if (session.IsArchived)
+        {
+            throw new InvalidOperationException("Session is already archived.");
+        }
+
+        session.IsArchived = true;
+        session.ArchivedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return await MapToDto(session, userId);
+    }
+
+    public async Task<SessionDto> UnarchiveSessionAsync(Guid sessionId, string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        var session = await _context.Sessions
+            .FirstOrDefaultAsync(s => s.Id == sessionId &&
+                (s.InitiatorId == userId || s.PartnerId == userId));
+
+        if (session == null)
+        {
+            throw new InvalidOperationException("Session not found.");
+        }
+
+        if (!session.IsArchived)
+        {
+            throw new InvalidOperationException("Session is not archived.");
+        }
+
+        session.IsArchived = false;
+        session.ArchivedAt = null;
+
+        await _context.SaveChangesAsync();
+
+        return await MapToDto(session, userId);
+    }
+
+    private async Task<int> GetMatchCountForSessionAsync(Session session)
+    {
+        if (session.PartnerId == null)
+        {
+            return 0;
+        }
+
+        var matchCount = await (
+            from initiatorVote in _context.Votes
+            join partnerVote in _context.Votes
+                on new { initiatorVote.NameId, initiatorVote.SessionId }
+                equals new { partnerVote.NameId, partnerVote.SessionId }
+            where initiatorVote.UserId == session.InitiatorId
+                && partnerVote.UserId == session.PartnerId
+                && initiatorVote.SessionId == session.Id
+                && initiatorVote.VoteType == VoteType.Like
+                && partnerVote.VoteType == VoteType.Like
+            select initiatorVote.Id
+        ).CountAsync();
+
+        return matchCount;
     }
 }

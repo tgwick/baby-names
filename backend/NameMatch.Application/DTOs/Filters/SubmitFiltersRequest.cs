@@ -1,7 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace NameMatch.Application.DTOs.Filters;
 
 public class SubmitFiltersRequest
 {
+    [Required]
+    public Guid SessionId { get; set; }
+
     public required List<FilterAnswerDto> Answers { get; set; }
 }
 

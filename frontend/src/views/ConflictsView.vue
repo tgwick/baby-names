@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { Gender } from '@/types/session'
 
 const router = useRouter()
+const route = useRoute()
 const sessionStore = useSessionStore()
+
+const sessionId = computed(() => route.params.sessionId as string)
 
 const genderIcon = (gender: Gender) => {
   switch (gender) {
@@ -35,10 +38,10 @@ const partnerName = computed(() => {
 })
 
 onMounted(async () => {
-  await sessionStore.fetchCurrentSession()
+  await sessionStore.setActiveSession(sessionId.value)
 
   if (!sessionStore.hasSession || !sessionStore.isActive) {
-    router.push('/dashboard')
+    router.push('/sessions')
     return
   }
 
@@ -64,7 +67,7 @@ function formatDate(dateStr: string) {
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 sm:mb-8 animate-slide-up">
       <button
-        @click="router.push('/swipe')"
+        @click="router.push(`/sessions/${sessionId}/swipe`)"
         class="flex items-center gap-2 text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors min-h-[44px] min-w-[44px] px-2"
       >
         <span class="text-xl">←</span>
@@ -219,7 +222,7 @@ function formatDate(dateStr: string) {
       <p class="text-sm sm:text-base text-[var(--color-warm-gray-light)] mb-4 sm:mb-6 max-w-sm mx-auto">
         You and {{ partnerName }} are in perfect harmony. Keep swiping to find more matches!
       </p>
-      <button @click="router.push('/swipe')" class="btn-primary">
+      <button @click="router.push(`/sessions/${sessionId}/swipe`)" class="btn-primary">
         <span>Continue Swiping</span>
       </button>
     </div>

@@ -26,6 +26,10 @@ public class SessionDto
     public bool InitiatorFiltersCompleted { get; set; }
     public bool PartnerFiltersCompleted { get; set; }
 
+    // Archive tracking
+    public bool IsArchived { get; set; }
+    public DateTime? ArchivedAt { get; set; }
+
     // Can start voting when both partners have completed filters (or legacy prefs for backwards compatibility)
     public bool CanStartVoting => (InitiatorFiltersCompleted && PartnerFiltersCompleted) ||
                                    (InitiatorPrefsCompleted && PartnerPrefsCompleted);

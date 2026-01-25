@@ -10,19 +10,19 @@ public interface IFilterService
     Task<IEnumerable<FilterQuestionDto>> GetFilterQuestionsAsync();
 
     /// <summary>
-    /// Submits filter answers for the current user's session.
+    /// Submits filter answers for the specified session.
     /// </summary>
-    Task<SessionFiltersStatusDto> SubmitFiltersAsync(string userId, SubmitFiltersRequest request);
+    Task<SessionFiltersStatusDto> SubmitFiltersAsync(string userId, Guid sessionId, SubmitFiltersRequest request);
 
     /// <summary>
     /// Gets the filter completion status for a session.
     /// </summary>
-    Task<SessionFiltersStatusDto?> GetFiltersStatusAsync(string userId);
+    Task<SessionFiltersStatusDto?> GetFiltersStatusAsync(string userId, Guid sessionId);
 
     /// <summary>
-    /// Gets the current user's filters for their active session.
+    /// Gets the user's filters for the specified session.
     /// </summary>
-    Task<UserFiltersDto?> GetUserFiltersAsync(string userId);
+    Task<UserFiltersDto?> GetUserFiltersAsync(string userId, Guid sessionId);
 
     /// <summary>
     /// Gets the combined filters from both partners in a session.

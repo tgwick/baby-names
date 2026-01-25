@@ -18,7 +18,7 @@ public class VoteService : IVoteService
         _nameService = nameService;
     }
 
-    public async Task<VoteResultDto> SubmitVoteAsync(string userId, int nameId, VoteType voteType)
+    public async Task<VoteResultDto> SubmitVoteAsync(string userId, Guid sessionId, int nameId, VoteType voteType)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -35,15 +35,16 @@ public class VoteService : IVoteService
             throw new ArgumentException("Invalid vote type.", nameof(voteType));
         }
 
-        // Find the user's active session
+        // Find the specified session and verify user access
         var session = await _context.Sessions
             .FirstOrDefaultAsync(s =>
+                s.Id == sessionId &&
                 (s.InitiatorId == userId || s.PartnerId == userId) &&
                 s.Status == SessionStatus.Active);
 
         if (session == null)
         {
-            throw new InvalidOperationException("You must have an active session to vote.");
+            throw new InvalidOperationException("Session not found or not active.");
         }
 
         // Verify the name exists
@@ -112,9 +113,9 @@ public class VoteService : IVoteService
         return result;
     }
 
-    public async Task<IEnumerable<MatchDto>> GetMatchesAsync(string userId)
+    public async Task<IEnumerable<MatchDto>> GetMatchesAsync(string userId, Guid sessionId)
     {
-        var session = await GetActiveSessionAsync(userId);
+        var session = await GetSessionAsync(userId, sessionId);
         if (session == null)
         {
             return [];
@@ -157,9 +158,9 @@ public class VoteService : IVoteService
         return matches;
     }
 
-    public async Task<int> GetMatchCountAsync(string userId)
+    public async Task<int> GetMatchCountAsync(string userId, Guid sessionId)
     {
-        var session = await GetActiveSessionAsync(userId);
+        var session = await GetSessionAsync(userId, sessionId);
         if (session == null)
         {
             return 0;
@@ -188,9 +189,9 @@ public class VoteService : IVoteService
         return matchCount;
     }
 
-    public async Task<IEnumerable<VoteDto>> GetUserVotesAsync(string userId)
+    public async Task<IEnumerable<VoteDto>> GetUserVotesAsync(string userId, Guid sessionId)
     {
-        var session = await GetActiveSessionAsync(userId);
+        var session = await GetSessionAsync(userId, sessionId);
         if (session == null)
         {
             return [];
@@ -213,9 +214,9 @@ public class VoteService : IVoteService
         return votes;
     }
 
-    public async Task<VoteStatsDto> GetVoteStatsAsync(string userId)
+    public async Task<VoteStatsDto> GetVoteStatsAsync(string userId, Guid sessionId)
     {
-        var session = await GetActiveSessionAsync(userId);
+        var session = await GetSessionAsync(userId, sessionId);
         if (session == null)
         {
             return new VoteStatsDto();
@@ -227,7 +228,7 @@ public class VoteService : IVoteService
 
         var totalLikes = votes.Count(v => v.VoteType == VoteType.Like);
         var totalDislikes = votes.Count(v => v.VoteType == VoteType.Dislike);
-        var matchCount = await GetMatchCountAsync(userId);
+        var matchCount = await GetMatchCountAsync(userId, sessionId);
 
         // Get total names using NameService which applies hard filters (Classic, Syllables, etc.)
         var totalNames = await _nameService.GetNameCountForSessionAsync(session.Id);
@@ -243,9 +244,9 @@ public class VoteService : IVoteService
         };
     }
 
-    public async Task<IEnumerable<ConflictDto>> GetConflictsAsync(string userId)
+    public async Task<IEnumerable<ConflictDto>> GetConflictsAsync(string userId, Guid sessionId)
     {
-        var session = await GetActiveSessionAsync(userId);
+        var session = await GetSessionAsync(userId, sessionId);
         if (session == null)
         {
             return [];
@@ -289,7 +290,7 @@ public class VoteService : IVoteService
         return conflicts;
     }
 
-    public async Task<bool> ClearDislikeAsync(string userId, int nameId)
+    public async Task<bool> ClearDislikeAsync(string userId, Guid sessionId, int nameId)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -301,10 +302,10 @@ public class VoteService : IVoteService
             throw new ArgumentException("Name ID must be a positive integer.", nameof(nameId));
         }
 
-        var session = await GetActiveSessionAsync(userId);
+        var session = await GetSessionAsync(userId, sessionId);
         if (session == null)
         {
-            throw new InvalidOperationException("You must have an active session to clear a dislike.");
+            throw new InvalidOperationException("Session not found or you don't have access.");
         }
 
         // Find the user's vote for this name
@@ -331,12 +332,12 @@ public class VoteService : IVoteService
         return true;
     }
 
-    private async Task<Session?> GetActiveSessionAsync(string userId)
+    private async Task<Session?> GetSessionAsync(string userId, Guid sessionId)
     {
         return await _context.Sessions
             .FirstOrDefaultAsync(s =>
-                (s.InitiatorId == userId || s.PartnerId == userId) &&
-                s.Status == SessionStatus.Active);
+                s.Id == sessionId &&
+                (s.InitiatorId == userId || s.PartnerId == userId));
     }
 
     private async Task<bool> CheckForMatchAsync(Session session, string currentUserId, int nameId)

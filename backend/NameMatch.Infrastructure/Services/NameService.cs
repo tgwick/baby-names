@@ -27,12 +27,12 @@ public class NameService : INameService
         _filterService = filterService;
     }
 
-    public async Task<NameDto?> GetNextUnvotedNameAsync(string userId)
+    public async Task<NameDto?> GetNextUnvotedNameAsync(string userId, Guid sessionId)
     {
-        // Find the user's active session
+        // Find the specified session and verify user access
         var session = await _context.Sessions
-            .Where(s => (s.InitiatorId == userId || s.PartnerId == userId) &&
-                        s.Status == SessionStatus.Active)
+            .Where(s => s.Id == sessionId &&
+                        (s.InitiatorId == userId || s.PartnerId == userId))
             .FirstOrDefaultAsync();
 
         if (session == null)

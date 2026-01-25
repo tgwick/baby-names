@@ -92,7 +92,7 @@ async function handleSubmit() {
       </form>
 
       <!-- Footer Link -->
-      <p class="mt-6 sm:mt-8 text-center text-[var(--color-warm-gray-light)] animate-slide-up stagger-4" style="animation-fill-mode: forwards; opacity: 0;">
+      <p class="mt-6 sm:mt-8 text-center text-[var(--color-warm-gray-light)]">
         Don't have an account?
         <RouterLink to="/register" class="auth-link">
           Sign up

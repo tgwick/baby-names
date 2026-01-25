@@ -23,6 +23,10 @@ public class Session
     public DateTime? InitiatorFiltersCompletedAt { get; set; }
     public DateTime? PartnerFiltersCompletedAt { get; set; }
 
+    // Archive tracking
+    public bool IsArchived { get; set; }
+    public DateTime? ArchivedAt { get; set; }
+
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
     public ICollection<UserPreference> UserPreferences { get; set; } = new List<UserPreference>();
     public ICollection<SessionFilter> Filters { get; set; } = new List<SessionFilter>();

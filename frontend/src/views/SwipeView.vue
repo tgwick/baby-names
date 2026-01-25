@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { VoteType } from '@/types/vote'
 import { extractApiError } from '@/services/api'
@@ -8,7 +8,10 @@ import NameCard from '@/components/NameCard.vue'
 import MatchCelebration from '@/components/MatchCelebration.vue'
 
 const router = useRouter()
+const route = useRoute()
 const sessionStore = useSessionStore()
+
+const sessionId = computed(() => route.params.sessionId as string)
 
 const cardAnimating = ref<'like' | 'dislike' | null>(null)
 const error = ref<string | null>(null)
@@ -21,15 +24,15 @@ async function loadInitialData() {
   initialLoading.value = true
 
   try {
-    await sessionStore.fetchCurrentSession()
+    await sessionStore.setActiveSession(sessionId.value)
 
     if (!sessionStore.hasSession) {
-      router.push('/dashboard')
+      router.push('/sessions')
       return
     }
 
     if (!sessionStore.isActive) {
-      router.push('/session')
+      router.push(`/sessions/${sessionId.value}`)
       return
     }
 
@@ -105,7 +108,7 @@ function handleMatchClose() {
 }
 
 function goToMatches() {
-  router.push('/matches')
+  router.push(`/sessions/${sessionId.value}/matches`)
 }
 </script>
 
@@ -114,7 +117,7 @@ function goToMatches() {
     <!-- Header with stats -->
     <div class="flex items-center justify-between mb-4 sm:mb-6 animate-slide-up">
       <button
-        @click="router.push('/session')"
+        @click="router.push(`/sessions/${sessionId}`)"
         class="flex items-center gap-2 text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors min-h-[44px] min-w-[44px] px-2"
       >
         <span class="text-xl">←</span>

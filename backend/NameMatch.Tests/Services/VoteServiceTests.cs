@@ -22,16 +22,17 @@ public class VoteServiceTests
     }
 
     [Fact]
-    public async Task SubmitVoteAsync_ThrowsException_WhenNoActiveSession()
+    public async Task SubmitVoteAsync_ThrowsException_WhenSessionNotFound()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
         var service = new VoteService(context, CreateMockNameService());
+        var nonExistentSessionId = Guid.NewGuid();
 
         // Act & Assert
-        var act = async () => await service.SubmitVoteAsync("user-123", 1, VoteType.Like);
+        var act = async () => await service.SubmitVoteAsync("user-123", nonExistentSessionId, 1, VoteType.Like);
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*active session*");
+            .WithMessage("*Session not found*");
     }
 
     [Fact]
@@ -48,7 +49,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
-        var act = async () => await service.SubmitVoteAsync(userId, 9999, VoteType.Like);
+        var act = async () => await service.SubmitVoteAsync(userId, session.Id, 9999, VoteType.Like);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Name not found*");
     }
@@ -70,7 +71,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var result = await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
+        var result = await service.SubmitVoteAsync(userId, session.Id, name.Id, VoteType.Like);
 
         // Assert
         result.Should().NotBeNull();
@@ -103,10 +104,10 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // First vote - Like
-        await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
+        await service.SubmitVoteAsync(userId, session.Id, name.Id, VoteType.Like);
 
         // Act - Change to Dislike
-        var result = await service.SubmitVoteAsync(userId, name.Id, VoteType.Dislike);
+        var result = await service.SubmitVoteAsync(userId, session.Id, name.Id, VoteType.Dislike);
 
         // Assert
         result.Should().NotBeNull();
@@ -143,7 +144,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act - User votes Like (should match)
-        var result = await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
+        var result = await service.SubmitVoteAsync(userId, session.Id, name.Id, VoteType.Like);
 
         // Assert
         result.IsMatch.Should().BeTrue();
@@ -183,7 +184,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act - User votes Like
-        var result = await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
+        var result = await service.SubmitVoteAsync(userId, session.Id, name.Id, VoteType.Like);
 
         // Assert
         result.IsMatch.Should().BeFalse();
@@ -191,14 +192,15 @@ public class VoteServiceTests
     }
 
     [Fact]
-    public async Task GetMatchesAsync_ReturnsEmpty_WhenNoSession()
+    public async Task GetMatchesAsync_ReturnsEmpty_WhenSessionNotFound()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
         var service = new VoteService(context, CreateMockNameService());
+        var nonExistentSessionId = Guid.NewGuid();
 
         // Act
-        var matches = await service.GetMatchesAsync("user-123");
+        var matches = await service.GetMatchesAsync("user-123", nonExistentSessionId);
 
         // Assert
         matches.Should().BeEmpty();
@@ -228,7 +230,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var matches = await service.GetMatchesAsync(userId);
+        var matches = await service.GetMatchesAsync(userId, session.Id);
 
         // Assert
         matches.Should().BeEmpty();
@@ -268,7 +270,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var matches = (await service.GetMatchesAsync(userId)).ToList();
+        var matches = (await service.GetMatchesAsync(userId, session.Id)).ToList();
 
         // Assert
         matches.Should().HaveCount(2);
@@ -305,7 +307,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var count = await service.GetMatchCountAsync(userId);
+        var count = await service.GetMatchCountAsync(userId, session.Id);
 
         // Assert
         count.Should().Be(2);
@@ -337,7 +339,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var votes = (await service.GetUserVotesAsync(userId)).ToList();
+        var votes = (await service.GetUserVotesAsync(userId, session.Id)).ToList();
 
         // Assert
         votes.Should().HaveCount(2);
@@ -376,7 +378,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService(4));
 
         // Act
-        var stats = await service.GetVoteStatsAsync(userId);
+        var stats = await service.GetVoteStatsAsync(userId, session.Id);
 
         // Assert
         stats.TotalVotes.Should().Be(3);
@@ -387,14 +389,15 @@ public class VoteServiceTests
     }
 
     [Fact]
-    public async Task GetConflictsAsync_ReturnsEmpty_WhenNoSession()
+    public async Task GetConflictsAsync_ReturnsEmpty_WhenSessionNotFound()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
         var service = new VoteService(context, CreateMockNameService());
+        var nonExistentSessionId = Guid.NewGuid();
 
         // Act
-        var conflicts = await service.GetConflictsAsync("user-123");
+        var conflicts = await service.GetConflictsAsync("user-123", nonExistentSessionId);
 
         // Assert
         conflicts.Should().BeEmpty();
@@ -431,7 +434,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var conflicts = (await service.GetConflictsAsync(userId)).ToList();
+        var conflicts = (await service.GetConflictsAsync(userId, session.Id)).ToList();
 
         // Assert
         conflicts.Should().HaveCount(2);
@@ -470,7 +473,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var conflicts = (await service.GetConflictsAsync(userId)).ToList();
+        var conflicts = (await service.GetConflictsAsync(userId, session.Id)).ToList();
 
         // Assert
         conflicts.Should().HaveCount(1);
@@ -478,16 +481,17 @@ public class VoteServiceTests
     }
 
     [Fact]
-    public async Task ClearDislikeAsync_ThrowsException_WhenNoSession()
+    public async Task ClearDislikeAsync_ThrowsException_WhenSessionNotFound()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
         var service = new VoteService(context, CreateMockNameService());
+        var nonExistentSessionId = Guid.NewGuid();
 
         // Act & Assert
-        var act = async () => await service.ClearDislikeAsync("user-123", 1);
+        var act = async () => await service.ClearDislikeAsync("user-123", nonExistentSessionId, 1);
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*active session*");
+            .WithMessage("*Session not found*");
     }
 
     [Fact]
@@ -504,7 +508,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
-        var act = async () => await service.ClearDislikeAsync(userId, 9999);
+        var act = async () => await service.ClearDislikeAsync(userId, session.Id, 9999);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Vote not found*");
     }
@@ -536,7 +540,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
-        var act = async () => await service.ClearDislikeAsync(userId, name.Id);
+        var act = async () => await service.ClearDislikeAsync(userId, session.Id, name.Id);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*only clear a dislike*");
     }
@@ -566,7 +570,7 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Act
-        var result = await service.ClearDislikeAsync(userId, name.Id);
+        var result = await service.ClearDislikeAsync(userId, session.Id, name.Id);
 
         // Assert
         result.Should().BeTrue();
@@ -601,14 +605,14 @@ public class VoteServiceTests
         var service = new VoteService(context, CreateMockNameService());
 
         // Verify conflict exists before clearing
-        var conflictsBefore = (await service.GetConflictsAsync(userId)).ToList();
+        var conflictsBefore = (await service.GetConflictsAsync(userId, session.Id)).ToList();
         conflictsBefore.Should().HaveCount(1);
 
         // Act
-        await service.ClearDislikeAsync(userId, name.Id);
+        await service.ClearDislikeAsync(userId, session.Id, name.Id);
 
         // Assert - conflict should be gone
-        var conflictsAfter = (await service.GetConflictsAsync(userId)).ToList();
+        var conflictsAfter = (await service.GetConflictsAsync(userId, session.Id)).ToList();
         conflictsAfter.Should().BeEmpty();
     }
 

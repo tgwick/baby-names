@@ -25,8 +25,8 @@ async function handleJoin() {
   loading.value = true
 
   try {
-    await sessionStore.joinByCode(joinCode.value)
-    router.push('/session')
+    const joinedSession = await sessionStore.joinByCode(joinCode.value)
+    router.push(`/sessions/${joinedSession.id}`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { errors?: string[] } } }
     error.value = err.response?.data?.errors?.[0] || 'Invalid code. Please check and try again.'
@@ -136,10 +136,10 @@ function handleKeydown(event: KeyboardEvent) {
 
       <!-- Cancel Link -->
       <RouterLink
-        to="/dashboard"
+        to="/sessions"
         class="block mt-6 text-center text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors"
       >
-        ← Back to Dashboard
+        ← Back to Sessions
       </RouterLink>
     </div>
   </div>
