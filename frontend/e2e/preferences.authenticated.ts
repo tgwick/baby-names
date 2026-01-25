@@ -167,11 +167,11 @@ test.describe('Preferences Flow', () => {
     await expect(page.getByText(/what kind of names/i)).toBeVisible({ timeout: 5000 })
 
     // Skip question 1
-    await page.getByRole('button', { name: /skip/i }).click()
+    await page.getByRole('button', { name: 'Skip', exact: true }).click()
 
     // Skip question 2
     await expect(page.getByText(/how long should the name/i)).toBeVisible({ timeout: 5000 })
-    await page.getByRole('button', { name: /skip/i }).click()
+    await page.getByRole('button', { name: 'Skip', exact: true }).click()
 
     // Should show completion summary
     await expect(page.getByText(/setup complete/i)).toBeVisible({ timeout: 5000 })
