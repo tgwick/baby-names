@@ -156,6 +156,71 @@ Backend config in `appsettings.json`:
 - `Jwt:Key/Issuer/Audience/ExpiryInMinutes` - JWT settings
 - `Cors:AllowedOrigins` - Allowed frontend origins
 
+## Environments
+
+### DEV
+- **URL:** https://dev.hatchaname.com
+- **Test Credentials:**
+  - Email: `test@hatchaname.com`
+  - Password: `TestPassword123!`
+  - Display Name: `Test User`
+- **Database:**
+  - Host: `namematch-dev-pgsql.postgres.database.azure.com`
+  - Database: `namematch`
+  - Username: `pgadmin`
+  - Password: Stored in Azure Key Vault (`namematch-dev-kv` → `postgres-password`)
+  - SSL Mode: Require
+
+### Production
+- **URL:** https://hatchaname.com
+- **Database:**
+  - Host: `namematch-prod-pgsql.postgres.database.azure.com`
+  - Database: `namematch`
+  - Username: `pgadmin`
+  - Password: Stored in Azure Key Vault (`namematch-prod-kv` → `postgres-password`)
+  - SSL Mode: Require
+
+## Reseeding Data
+
+The backend auto-seeds names on startup if the `Names` table is empty. To reseed with fresh data (e.g., after adding new columns):
+
+### 1. Connect to Database
+```bash
+# Get password from Key Vault (DEV example)
+az keyvault secret show --vault-name namematch-dev-kv --name postgres-password --query value -o tsv
+
+# Connect via psql
+psql "host=namematch-dev-pgsql.postgres.database.azure.com dbname=namematch user=pgadmin sslmode=require"
+```
+
+### 2. Clear Data (allows re-seeding)
+```sql
+-- Clear votes first (has foreign key to Names)
+TRUNCATE TABLE "Votes" CASCADE;
+
+-- Clear names (triggers re-seed on next app restart)
+TRUNCATE TABLE "Names" CASCADE;
+
+-- Optional: Clear sessions to start fresh
+TRUNCATE TABLE "Sessions" CASCADE;
+```
+
+### 3. Restart the Backend
+The Container App will re-seed automatically on startup. To force a restart:
+```bash
+# DEV
+az containerapp revision restart \
+  --resource-group namematch-dev-rg \
+  --name namematch-dev-api
+
+# Or trigger a new deployment via GitHub Actions
+```
+
+### When to Reseed
+- After adding new columns to the `Names` table (e.g., `TrendScore`, `StabilityScore`)
+- After updating `processed-names.json` with new data
+- When filter features return zero results due to missing data
+
 ## Pre-Push Checklist
 
 **IMPORTANT:** Before pushing changes or creating a PR, always run the full test suite to avoid CI failures:
