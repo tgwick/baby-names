@@ -83,7 +83,11 @@ public class DataSeeder : IDataSeeder
                 NameText = n.NameText,
                 Gender = (Gender)n.Gender,
                 PopularityScore = n.PopularityScore,
-                Origin = n.Origin
+                Origin = n.Origin,
+                TrendScore = n.TrendScore,
+                StabilityScore = n.StabilityScore,
+                PeakDecade = n.PeakDecade,
+                DecadesPresent = n.DecadesPresent
             }).ToList();
 
             // Add in batches for performance
@@ -158,5 +162,9 @@ public class DataSeeder : IDataSeeder
         public int Gender { get; set; }
         public int PopularityScore { get; set; }
         public string? Origin { get; set; }
+        public float? TrendScore { get; set; }
+        public float? StabilityScore { get; set; }
+        public int? PeakDecade { get; set; }
+        public int? DecadesPresent { get; set; }
     }
 }

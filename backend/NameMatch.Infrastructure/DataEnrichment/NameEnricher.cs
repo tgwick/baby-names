@@ -111,6 +111,17 @@ public class NameEnricher : INameEnricher
     {
         var result = new Application.Interfaces.EnrichmentResult();
 
+        // Quick check: if not forcing re-enrich, see if enrichment was already done
+        if (!forceReenrich)
+        {
+            var hasEnrichedNames = await _context.Names.AnyAsync(n => n.SyllableCount != null);
+            if (hasEnrichedNames)
+            {
+                _logger.LogInformation("Names already enriched. Skipping enrichment.");
+                return result;
+            }
+        }
+
         // Load all categories
         var categories = await _context.NameCategories.ToDictionaryAsync(c => c.Code, c => c.Id);
         if (categories.Count == 0)

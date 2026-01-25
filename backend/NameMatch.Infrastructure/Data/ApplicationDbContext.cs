@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<NameCategory> NameCategories => Set<NameCategory>();
     public DbSet<NameCategoryMapping> NameCategoryMappings => Set<NameCategoryMapping>();
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
+    public DbSet<SessionFilter> SessionFilters => Set<SessionFilter>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -109,6 +110,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => new { e.UserId, e.SessionId, e.CategoryId }).IsUnique();
+        });
+
+        builder.Entity<SessionFilter>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.AllowedEndingSounds).HasMaxLength(200);
+
+            entity.HasOne(e => e.Session)
+                .WithMany(s => s.Filters)
+                .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UserId, e.SessionId }).IsUnique();
         });
     }
 }

@@ -19,6 +19,11 @@ public class Session
     public DateTime? InitiatorPrefsCompletedAt { get; set; }
     public DateTime? PartnerPrefsCompletedAt { get; set; }
 
+    // Filter tracking (hard filters run before soft preferences)
+    public DateTime? InitiatorFiltersCompletedAt { get; set; }
+    public DateTime? PartnerFiltersCompletedAt { get; set; }
+
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
     public ICollection<UserPreference> UserPreferences { get; set; } = new List<UserPreference>();
+    public ICollection<SessionFilter> Filters { get; set; } = new List<SessionFilter>();
 }

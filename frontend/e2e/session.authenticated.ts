@@ -25,18 +25,26 @@ test.describe('Authenticated Session Flow', () => {
   })
 
   test('should create session and display join code', async ({ page }) => {
-    // First check if there's already an active session by navigating to /session
-    await page.goto('/session')
+    // Navigate to create page
+    await page.goto('/session/create')
+
+    // Wait for the page to fully load by waiting for the heading
+    await expect(page.getByRole('heading', { name: /build your nest/i })).toBeVisible()
+
+    // Wait a bit for async session check to complete
     await page.waitForTimeout(1000)
 
-    const currentUrl = page.url()
+    // Check if there's an active session warning using page.evaluate for reliability
+    const hasActiveSession = await page.evaluate(() => {
+      return document.body.innerText.toLowerCase().includes('already have an active session')
+    })
 
-    // If we're on the session page (not redirected to create), we have an active session
-    if (currentUrl.endsWith('/session') && !currentUrl.includes('/create')) {
-      // Already have a session - verify we're on the session page with relevant content
-      // Session page could show: waiting status, preferences prompt, or swipe interface
-      const hasSessionContent = await page.locator('body').evaluate((body) => {
-        const text = body.innerText.toLowerCase()
+    if (hasActiveSession) {
+      // Already have a session - navigate to it and verify
+      await page.goto('/session')
+      await page.waitForTimeout(1000)
+      const hasSessionContent = await page.evaluate(() => {
+        const text = document.body.innerText.toLowerCase()
         return text.includes('waiting') ||
                text.includes('preferences') ||
                text.includes('swipe') ||
@@ -45,42 +53,21 @@ test.describe('Authenticated Session Flow', () => {
       })
       expect(hasSessionContent).toBeTruthy()
     } else {
-      // Check if we're on create page but there's already an active session
-      await page.goto('/session/create')
-      await page.waitForTimeout(500)
+      // No active session - create a new one
+      await page.getByRole('button', { name: /girl names/i }).click()
+      await page.getByRole('button', { name: /build nest/i }).click()
 
-      const hasActiveSessionWarning = await page.getByText(/already have an active session/i).isVisible().catch(() => false)
+      // Should redirect to session page
+      await expect(page).toHaveURL('/session', { timeout: 10000 })
 
-      if (hasActiveSessionWarning) {
-        // Already have a session - navigate to it and verify content
-        await page.goto('/session')
-        await page.waitForTimeout(500)
-        const hasSessionContent = await page.locator('body').evaluate((body) => {
-          const text = body.innerText.toLowerCase()
-          return text.includes('waiting') ||
-                 text.includes('preferences') ||
-                 text.includes('swipe') ||
-                 text.includes('partner') ||
-                 text.includes('session')
-        })
-        expect(hasSessionContent).toBeTruthy()
-      } else {
-        // No session exists - create one
-        await page.getByRole('button', { name: /girl names/i }).click()
-        await page.getByRole('button', { name: /build nest/i }).click()
-
-        // Should redirect to session page
-        await expect(page).toHaveURL('/session', { timeout: 10000 })
-
-        // Session page may show waiting status OR preferences prompt
-        const hasSessionContent = await page.locator('body').evaluate((body) => {
-          const text = body.innerText.toLowerCase()
-          return text.includes('waiting') ||
-                 text.includes('preferences') ||
-                 text.includes('partner')
-        })
-        expect(hasSessionContent).toBeTruthy()
-      }
+      // Session page may show waiting status OR preferences prompt
+      const hasSessionContent = await page.evaluate(() => {
+        const text = document.body.innerText.toLowerCase()
+        return text.includes('waiting') ||
+               text.includes('preferences') ||
+               text.includes('partner')
+      })
+      expect(hasSessionContent).toBeTruthy()
     }
   })
 

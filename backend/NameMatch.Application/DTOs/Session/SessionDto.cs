@@ -17,9 +17,16 @@ public class SessionDto
     public string? PartnerDisplayName { get; set; }
     public string? InitiatorDisplayName { get; set; }
 
-    // Preference tracking
+    // Preference tracking (legacy)
     public SessionSetupStatus SetupStatus { get; set; }
     public bool InitiatorPrefsCompleted { get; set; }
     public bool PartnerPrefsCompleted { get; set; }
-    public bool CanStartVoting => InitiatorPrefsCompleted && PartnerPrefsCompleted;
+
+    // Filter tracking (new system)
+    public bool InitiatorFiltersCompleted { get; set; }
+    public bool PartnerFiltersCompleted { get; set; }
+
+    // Can start voting when both partners have completed filters (or legacy prefs for backwards compatibility)
+    public bool CanStartVoting => (InitiatorFiltersCompleted && PartnerFiltersCompleted) ||
+                                   (InitiatorPrefsCompleted && PartnerPrefsCompleted);
 }

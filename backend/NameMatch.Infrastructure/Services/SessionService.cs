@@ -211,7 +211,9 @@ public class SessionService : ISessionService
             PartnerDisplayName = partner?.DisplayName ?? partner?.Email,
             SetupStatus = session.SetupStatus,
             InitiatorPrefsCompleted = session.InitiatorPrefsCompletedAt.HasValue,
-            PartnerPrefsCompleted = session.PartnerPrefsCompletedAt.HasValue
+            PartnerPrefsCompleted = session.PartnerPrefsCompletedAt.HasValue,
+            InitiatorFiltersCompleted = session.InitiatorFiltersCompletedAt.HasValue,
+            PartnerFiltersCompleted = session.PartnerFiltersCompletedAt.HasValue
         };
     }
 }

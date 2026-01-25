@@ -29,10 +29,13 @@ export interface Session {
   isInitiator: boolean
   partnerDisplayName: string | null
   initiatorDisplayName: string | null
-  // Preference tracking
+  // Preference tracking (legacy)
   setupStatus: SessionSetupStatus
   initiatorPrefsCompleted: boolean
   partnerPrefsCompleted: boolean
+  // Filter tracking (new system)
+  initiatorFiltersCompleted: boolean
+  partnerFiltersCompleted: boolean
   canStartVoting: boolean
 }
 

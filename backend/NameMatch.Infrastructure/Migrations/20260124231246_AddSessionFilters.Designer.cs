@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NameMatch.Infrastructure.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NameMatch.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260124231246_AddSessionFilters")]
+    partial class AddSessionFilters
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -162,9 +165,6 @@ namespace NameMatch.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("DecadesPresent")
-                        .HasColumnType("integer");
-
                     b.Property<string>("EndingSound")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
@@ -185,9 +185,6 @@ namespace NameMatch.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int?>("PeakDecade")
-                        .HasColumnType("integer");
-
                     b.Property<int>("PopularityScore")
                         .HasColumnType("integer");
 
@@ -195,14 +192,8 @@ namespace NameMatch.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<float?>("StabilityScore")
-                        .HasColumnType("real");
-
                     b.Property<int?>("SyllableCount")
                         .HasColumnType("integer");
-
-                    b.Property<float?>("TrendScore")
-                        .HasColumnType("real");
 
                     b.HasKey("Id");
 
@@ -370,9 +361,6 @@ namespace NameMatch.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int?>("MinSyllables")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("NameStyle")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("SessionId")
