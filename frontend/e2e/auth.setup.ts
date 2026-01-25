@@ -16,8 +16,8 @@ setup('authenticate', async ({ page }) => {
   await page.locator('#confirmPassword').fill(testPassword)
   await page.getByRole('button', { name: /create account/i }).click()
 
-  // Wait for redirect to dashboard (successful registration)
-  await expect(page).toHaveURL('/dashboard', { timeout: 15000 })
+  // Wait for redirect to sessions list (successful registration)
+  await expect(page).toHaveURL('/sessions', { timeout: 15000 })
 
   // Save authentication state
   await page.context().storageState({ path: authFile })

@@ -5,48 +5,78 @@ import { test, expect } from '@playwright/test'
 // Run tests serially since they share auth state
 test.describe.configure({ mode: 'serial' })
 
+// Store the session ID for use across tests
+let sessionId: string | null = null
+
 test.describe('Preferences Flow', () => {
-  // Helper to ensure we have a session (create if needed, or use existing)
-  async function ensureSession(page: import('@playwright/test').Page) {
-    // Go to /session - it will redirect to /dashboard if no session exists
-    await page.goto('/session')
-    await page.waitForTimeout(2000) // Wait for session fetch and potential redirect
-
-    const currentUrl = page.url()
-
-    // If we stayed on /session, we have an active session
-    if (currentUrl.endsWith('/session') && !currentUrl.includes('/create') && !currentUrl.includes('/join')) {
-      return
+  // Helper to ensure we have a session and get its ID
+  async function ensureSession(page: import('@playwright/test').Page): Promise<string> {
+    // If we already have a session ID from a previous test, use it
+    if (sessionId) {
+      await page.goto(`/sessions/${sessionId}`)
+      await page.waitForTimeout(1000)
+      // Verify session still exists
+      const url = page.url()
+      if (url.includes(`/sessions/${sessionId}`)) {
+        return sessionId
+      }
     }
 
-    // No session - navigate to create page and create one
+    // Go to sessions list
+    await page.goto('/sessions')
+    await page.waitForTimeout(2000)
+
+    // Check if we have any sessions
+    const currentUrl = page.url()
+    if (currentUrl.endsWith('/sessions')) {
+      // Check for existing sessions by looking for session cards
+      const hasExistingSessions = await page.evaluate(() => {
+        const text = document.body.innerText.toLowerCase()
+        return text.includes('waiting') ||
+               text.includes('active') ||
+               (text.includes('session') && !text.includes('no sessions'))
+      })
+
+      if (hasExistingSessions) {
+        // Click on first session to get its ID
+        const sessionLink = page.locator('a[href^="/sessions/"]').first()
+        if (await sessionLink.isVisible()) {
+          const href = await sessionLink.getAttribute('href')
+          if (href) {
+            sessionId = href.replace('/sessions/', '').split('/')[0]
+            await sessionLink.click()
+            await page.waitForTimeout(1000)
+            return sessionId!
+          }
+        }
+      }
+    }
+
+    // No session - create one
     await page.goto('/session/create')
     await expect(page.getByRole('heading', { name: /build your nest/i })).toBeVisible()
 
     await page.getByRole('button', { name: /all names/i }).click()
     await page.getByRole('button', { name: /build nest/i }).click()
 
-    // Wait for navigation - might redirect to /session or show error
+    // Wait for navigation to session detail
     await page.waitForTimeout(3000)
 
-    // Check if we got an error (session already exists from another test run)
-    const hasError = await page.evaluate(() => {
-      return document.body.innerText.toLowerCase().includes('already have an active session')
-    })
-
-    if (hasError) {
-      // Session exists, just navigate to it
-      await page.goto('/session')
-      await page.waitForTimeout(1000)
-      return
+    // Extract session ID from URL
+    const newUrl = page.url()
+    const match = newUrl.match(/\/sessions\/([^\/]+)/)
+    if (match) {
+      sessionId = match[1]
+      return sessionId
     }
 
-    // Should be on /session now
-    await expect(page).toHaveURL('/session', { timeout: 5000 })
+    throw new Error('Failed to create or find a session')
   }
 
   test('should show preferences link on session page', async ({ page }) => {
-    await ensureSession(page)
+    const id = await ensureSession(page)
+    await page.goto(`/sessions/${id}`)
+    await page.waitForTimeout(1000)
 
     // Check page content - preferences link or swipe button should be visible
     // If both partners have completed preferences, we'll see "Start Swiping" instead of preferences link
@@ -60,17 +90,16 @@ test.describe('Preferences Flow', () => {
   })
 
   test('should navigate to preferences page and show questionnaire', async ({ page }) => {
-    await ensureSession(page)
+    const id = await ensureSession(page)
 
-    // Navigate directly to preferences page (link might not be visible if already completed)
-    await page.goto('/preferences')
-    await expect(page).toHaveURL('/preferences')
+    // Navigate directly to preferences page
+    await page.goto(`/sessions/${id}/preferences`)
+    await expect(page).toHaveURL(new RegExp(`/sessions/${id}/preferences`))
 
     // Wait for content to load
     await page.waitForLoadState('networkidle')
 
     // Should show either filter questionnaire or completed summary
-    // Use page.evaluate for reliable text checking
     const pageText = await page.evaluate(() => document.body.innerText.toLowerCase())
     const hasQuestionnaire = pageText.includes('what kind of names')
     const hasCompleted = pageText.includes('setup complete')
@@ -79,11 +108,11 @@ test.describe('Preferences Flow', () => {
   })
 
   test('should complete filter questionnaire and save', async ({ page }) => {
-    await ensureSession(page)
+    const id = await ensureSession(page)
 
     // Navigate directly to preferences
-    await page.goto('/preferences')
-    await expect(page).toHaveURL('/preferences')
+    await page.goto(`/sessions/${id}/preferences`)
+    await expect(page).toHaveURL(new RegExp(`/sessions/${id}/preferences`))
 
     // Wait for page to fully load
     await page.waitForLoadState('networkidle')
@@ -116,11 +145,11 @@ test.describe('Preferences Flow', () => {
   })
 
   test('should allow skipping questions', async ({ page }) => {
-    await ensureSession(page)
+    const id = await ensureSession(page)
 
-    // Navigate directly to preferences (link may not be visible if filters already completed)
-    await page.goto('/preferences')
-    await expect(page).toHaveURL('/preferences')
+    // Navigate directly to preferences
+    await page.goto(`/sessions/${id}/preferences`)
+    await expect(page).toHaveURL(new RegExp(`/sessions/${id}/preferences`))
 
     // Wait for page to fully load
     await page.waitForLoadState('networkidle')
@@ -149,11 +178,11 @@ test.describe('Preferences Flow', () => {
   })
 
   test('should allow updating filters after initial submission', async ({ page }) => {
-    await ensureSession(page)
+    const id = await ensureSession(page)
 
-    // Navigate directly to preferences (link may not be visible if filters already completed)
-    await page.goto('/preferences')
-    await expect(page).toHaveURL('/preferences')
+    // Navigate directly to preferences
+    await page.goto(`/sessions/${id}/preferences`)
+    await expect(page).toHaveURL(new RegExp(`/sessions/${id}/preferences`))
 
     // Wait for page to load
     await page.waitForLoadState('networkidle')
