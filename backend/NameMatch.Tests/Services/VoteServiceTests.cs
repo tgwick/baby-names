@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Moq;
+using NameMatch.Application.Interfaces;
 using NameMatch.Domain.Entities;
 using NameMatch.Domain.Enums;
 using NameMatch.Infrastructure.Services;
@@ -8,12 +10,23 @@ namespace NameMatch.Tests.Services;
 
 public class VoteServiceTests
 {
+    /// <summary>
+    /// Creates a mock INameService that returns a specified name count.
+    /// </summary>
+    private static INameService CreateMockNameService(int nameCount = 100)
+    {
+        var mock = new Mock<INameService>();
+        mock.Setup(x => x.GetNameCountForSessionAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(nameCount);
+        return mock.Object;
+    }
+
     [Fact]
     public async Task SubmitVoteAsync_ThrowsException_WhenNoActiveSession()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
         var act = async () => await service.SubmitVoteAsync("user-123", 1, VoteType.Like);
@@ -32,7 +45,7 @@ public class VoteServiceTests
         context.Sessions.Add(session);
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
         var act = async () => await service.SubmitVoteAsync(userId, 9999, VoteType.Like);
@@ -54,7 +67,7 @@ public class VoteServiceTests
         context.Names.Add(name);
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var result = await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
@@ -87,7 +100,7 @@ public class VoteServiceTests
         context.Names.Add(name);
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // First vote - Like
         await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
@@ -127,7 +140,7 @@ public class VoteServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act - User votes Like (should match)
         var result = await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
@@ -167,7 +180,7 @@ public class VoteServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act - User votes Like
         var result = await service.SubmitVoteAsync(userId, name.Id, VoteType.Like);
@@ -182,7 +195,7 @@ public class VoteServiceTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var matches = await service.GetMatchesAsync("user-123");
@@ -212,7 +225,7 @@ public class VoteServiceTests
         context.Sessions.Add(session);
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var matches = await service.GetMatchesAsync(userId);
@@ -252,7 +265,7 @@ public class VoteServiceTests
         context.Votes.Add(new Vote { UserId = userId, NameId = name3.Id, SessionId = session.Id, VoteType = VoteType.Like, VotedAt = DateTime.UtcNow });
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var matches = (await service.GetMatchesAsync(userId)).ToList();
@@ -289,7 +302,7 @@ public class VoteServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var count = await service.GetMatchCountAsync(userId);
@@ -321,7 +334,7 @@ public class VoteServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var votes = (await service.GetUserVotesAsync(userId)).ToList();
@@ -359,7 +372,8 @@ public class VoteServiceTests
         context.Votes.Add(new Vote { UserId = partnerId, NameId = name1.Id, SessionId = session.Id, VoteType = VoteType.Like, VotedAt = DateTime.UtcNow });
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        // Mock returns 4 names (matching the 4 names added above)
+        var service = new VoteService(context, CreateMockNameService(4));
 
         // Act
         var stats = await service.GetVoteStatsAsync(userId);
@@ -369,7 +383,7 @@ public class VoteServiceTests
         stats.LikeCount.Should().Be(2);
         stats.DislikeCount.Should().Be(1);
         stats.MatchCount.Should().Be(1);
-        stats.NamesRemaining.Should().Be(1); // 4 names - 3 voted = 1 remaining
+        stats.NamesRemaining.Should().Be(1); // 4 names from mock - 3 voted = 1 remaining
     }
 
     [Fact]
@@ -377,7 +391,7 @@ public class VoteServiceTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var conflicts = await service.GetConflictsAsync("user-123");
@@ -414,7 +428,7 @@ public class VoteServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var conflicts = (await service.GetConflictsAsync(userId)).ToList();
@@ -453,7 +467,7 @@ public class VoteServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var conflicts = (await service.GetConflictsAsync(userId)).ToList();
@@ -468,7 +482,7 @@ public class VoteServiceTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
         var act = async () => await service.ClearDislikeAsync("user-123", 1);
@@ -487,7 +501,7 @@ public class VoteServiceTests
         context.Sessions.Add(session);
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
         var act = async () => await service.ClearDislikeAsync(userId, 9999);
@@ -519,7 +533,7 @@ public class VoteServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act & Assert
         var act = async () => await service.ClearDislikeAsync(userId, name.Id);
@@ -549,7 +563,7 @@ public class VoteServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Act
         var result = await service.ClearDislikeAsync(userId, name.Id);
@@ -584,7 +598,7 @@ public class VoteServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new VoteService(context);
+        var service = new VoteService(context, CreateMockNameService());
 
         // Verify conflict exists before clearing
         var conflictsBefore = (await service.GetConflictsAsync(userId)).ToList();

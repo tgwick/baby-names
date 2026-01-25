@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NameMatch.Application.DTOs.Filters;
 using NameMatch.Application.DTOs.Name;
 using NameMatch.Application.Interfaces;
 using NameMatch.Domain.Entities;
@@ -10,6 +11,7 @@ namespace NameMatch.Infrastructure.Services;
 public class NameService : INameService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IFilterService _filterService;
     private readonly Random _random = new();
 
     // Weight calculation constants
@@ -19,9 +21,10 @@ public class NameService : INameService
     private const float PreferenceBoostMultiplier = 0.25f; // -0.5 to +0.5 per user
     private const float MutualBonus = 0.2f;
 
-    public NameService(ApplicationDbContext context)
+    public NameService(ApplicationDbContext context, IFilterService filterService)
     {
         _context = context;
+        _filterService = filterService;
     }
 
     public async Task<NameDto?> GetNextUnvotedNameAsync(string userId)
@@ -53,6 +56,13 @@ public class NameService : INameService
         {
             namesQuery = namesQuery.Where(n =>
                 n.Gender == session.TargetGender || n.Gender == Gender.Neutral);
+        }
+
+        // Apply hard filters (popularity, syllables, ending sounds)
+        var combinedFilters = await _filterService.GetCombinedSessionFiltersAsync(session.Id);
+        if (combinedFilters != null && combinedFilters.HasFilters)
+        {
+            namesQuery = ApplyHardFilters(namesQuery, combinedFilters);
         }
 
         // Exclude already voted names
@@ -120,6 +130,62 @@ public class NameService : INameService
             PopularityScore = selectedName.PopularityScore,
             Origin = selectedName.Origin
         };
+    }
+
+    /// <summary>
+    /// Applies hard filters to the name query, excluding names that don't match the criteria.
+    /// </summary>
+    private static IQueryable<Name> ApplyHardFilters(IQueryable<Name> query, CombinedFiltersDto filters)
+    {
+        // Name style filter based on trend analysis
+        query = filters.NameStyle switch
+        {
+            // Trendy: names with rising trend and recent peak
+            NameStyle.Trendy => query.Where(n =>
+                n.TrendScore > 0.3f && n.PeakDecade >= 2000),
+
+            // Classic: names with high stability that have been around for many decades
+            NameStyle.Classic => query.Where(n =>
+                n.StabilityScore >= 0.5f && n.DecadesPresent >= 4),
+
+            // Unique: uncommon names with low popularity
+            NameStyle.Unique => query.Where(n =>
+                n.PopularityScore <= 30),
+
+            // None: no filter
+            _ => query
+        };
+
+        // Popularity filter (legacy support)
+        if (filters.MinPopularityScore.HasValue)
+        {
+            query = query.Where(n => n.PopularityScore >= filters.MinPopularityScore.Value);
+        }
+        if (filters.MaxPopularityScore.HasValue)
+        {
+            query = query.Where(n => n.PopularityScore <= filters.MaxPopularityScore.Value);
+        }
+
+        // Syllable filter
+        if (filters.MinSyllables.HasValue)
+        {
+            query = query.Where(n => n.SyllableCount == null || n.SyllableCount >= filters.MinSyllables.Value);
+        }
+        if (filters.MaxSyllables.HasValue)
+        {
+            query = query.Where(n => n.SyllableCount == null || n.SyllableCount <= filters.MaxSyllables.Value);
+        }
+
+        // Ending sound filter - use EndsWith to match patterns like "a" matching "ia", "ma", "na", etc.
+        if (filters.AllowedEndingSounds != null && filters.AllowedEndingSounds.Count > 0)
+        {
+            var sounds = filters.AllowedEndingSounds;
+            query = query.Where(n =>
+                n.EndingSound == null ||
+                sounds.Any(s => n.EndingSound.EndsWith(s)));
+        }
+
+        return query;
     }
 
     /// <summary>
@@ -253,6 +319,13 @@ public class NameService : INameService
         {
             namesQuery = namesQuery.Where(n =>
                 n.Gender == session.TargetGender || n.Gender == Gender.Neutral);
+        }
+
+        // Apply hard filters (popularity, syllables, ending sounds)
+        var combinedFilters = await _filterService.GetCombinedSessionFiltersAsync(session.Id);
+        if (combinedFilters != null && combinedFilters.HasFilters)
+        {
+            namesQuery = ApplyHardFilters(namesQuery, combinedFilters);
         }
 
         // Get both users' preferences and filter out excluded categories

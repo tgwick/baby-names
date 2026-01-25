@@ -39,19 +39,23 @@ const partnerName = computed(() => {
     : sessionStore.session.initiatorDisplayName
 })
 
-// Preference-related computed
+// Filter/Preference-related computed (uses new filters system with legacy fallback)
 const myPrefsCompleted = computed(() => {
   if (!sessionStore.session) return false
-  return sessionStore.session.isInitiator
-    ? sessionStore.session.initiatorPrefsCompleted
-    : sessionStore.session.partnerPrefsCompleted
+  const s = sessionStore.session
+  // Use filters (new system) or fall back to legacy prefs
+  return s.isInitiator
+    ? (s.initiatorFiltersCompleted || s.initiatorPrefsCompleted)
+    : (s.partnerFiltersCompleted || s.partnerPrefsCompleted)
 })
 
 const partnerPrefsCompleted = computed(() => {
   if (!sessionStore.session) return false
-  return sessionStore.session.isInitiator
-    ? sessionStore.session.partnerPrefsCompleted
-    : sessionStore.session.initiatorPrefsCompleted
+  const s = sessionStore.session
+  // Use filters (new system) or fall back to legacy prefs
+  return s.isInitiator
+    ? (s.partnerFiltersCompleted || s.partnerPrefsCompleted)
+    : (s.initiatorFiltersCompleted || s.initiatorPrefsCompleted)
 })
 
 const canStartVoting = computed(() => sessionStore.session?.canStartVoting ?? false)

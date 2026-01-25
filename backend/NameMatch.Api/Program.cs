@@ -135,6 +135,7 @@ builder.Services.AddAuthentication(options =>
 // Services
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IFilterService, FilterService>();
 builder.Services.AddScoped<INameService, NameService>();
 builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IPreferenceService, PreferenceService>();
@@ -205,6 +206,10 @@ using (var scope = app.Services.CreateScope())
         var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
         await seeder.SeedNamesAsync();
         await seeder.SeedCategoriesAsync();
+
+        // Enrich names with syllable count, ending sounds, and category mappings
+        var enricher = scope.ServiceProvider.GetRequiredService<INameEnricher>();
+        await enricher.EnrichAllNamesAsync();
     }
     catch (Exception ex)
     {

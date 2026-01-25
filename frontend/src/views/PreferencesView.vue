@@ -1,17 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { usePreferencesStore } from '@/stores/preferences'
+import { useFiltersStore } from '@/stores/filters'
 import { useSessionStore } from '@/stores/session'
-import PreferenceQuestionnaire from '@/components/PreferenceQuestionnaire.vue'
+import FilterQuestionnaire from '@/components/FilterQuestionnaire.vue'
 
 const router = useRouter()
-const preferencesStore = usePreferencesStore()
+const filtersStore = useFiltersStore()
 const sessionStore = useSessionStore()
 
 const submitting = ref(false)
 const submitted = ref(false)
 const error = ref('')
+
+const stepTitle = computed(() => {
+  if (submitted.value) return 'Setup Complete!'
+  return 'Filter Your Names'
+})
+
+const stepSubtitle = computed(() => {
+  if (submitted.value) return 'Here\'s what you told us about your preferences'
+  return 'Let\'s narrow down the name pool to your taste'
+})
+
+const stepEmoji = computed(() => {
+  if (submitted.value) return '🎉'
+  return '🔍'
+})
 
 onMounted(async () => {
   // Fetch session if not loaded
@@ -25,36 +40,39 @@ onMounted(async () => {
     return
   }
 
-  // Fetch questions
-  await preferencesStore.fetchQuestions()
-  await preferencesStore.fetchStatus()
+  // Fetch filter questions and status
+  await Promise.all([
+    filtersStore.fetchQuestions(),
+    filtersStore.fetchStatus(),
+  ])
 
-  // If already completed, show summary
+  // Check if already completed
   const isInitiator = sessionStore.session.isInitiator
-  const alreadyCompleted = isInitiator
-    ? sessionStore.session.initiatorPrefsCompleted
-    : sessionStore.session.partnerPrefsCompleted
+  const filtersCompleted = isInitiator
+    ? filtersStore.status?.initiatorCompleted
+    : filtersStore.status?.partnerCompleted
 
-  if (alreadyCompleted) {
+  if (filtersCompleted) {
+    // Already completed, show summary
     submitted.value = true
-    await preferencesStore.fetchUserPreferences()
+    await filtersStore.fetchUserFilters()
   }
 })
 
-async function handleComplete() {
+async function handleFiltersComplete() {
   submitting.value = true
   error.value = ''
 
   try {
-    await preferencesStore.submitPreferences()
+    await filtersStore.submitFilters()
     submitted.value = true
 
     // Refresh session to get updated status
     await sessionStore.refreshSession()
-    await preferencesStore.fetchUserPreferences()
+    await filtersStore.fetchUserFilters()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { errors?: string[] } } }
-    error.value = err.response?.data?.errors?.[0] || 'Failed to save preferences. Please try again.'
+    error.value = err.response?.data?.errors?.[0] || 'Failed to save filters. Please try again.'
   } finally {
     submitting.value = false
   }
@@ -65,8 +83,25 @@ function handleContinue() {
 }
 
 function handleStartOver() {
-  preferencesStore.resetQuestionnaire()
+  filtersStore.resetQuestionnaire()
   submitted.value = false
+}
+
+function getNameStyleLabel(style: number): string {
+  switch (style) {
+    case 1: return 'Trendy names'
+    case 2: return 'Classic names'
+    case 3: return 'Unique names'
+    default: return 'All name styles'
+  }
+}
+
+function getSyllableLabel(min: number | null, max: number | null): string {
+  if (min === null && max === null) return 'Any length'
+  if (max !== null && max <= 2) return 'Short names (1-2 syllables)'
+  if (min !== null && min >= 2 && max !== null && max <= 3) return 'Medium length (2-3 syllables)'
+  if (min !== null && min >= 3) return 'Long names (3+ syllables)'
+  return 'Custom length'
 }
 </script>
 
@@ -75,16 +110,17 @@ function handleStartOver() {
     <div class="card-elevated p-6 md:p-8 animate-slide-up">
       <!-- Header -->
       <div class="text-center mb-6">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[var(--color-blush)] mb-3">
-          <span class="text-2xl">💝</span>
+        <div
+          class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-3"
+          :class="submitted ? 'bg-[var(--color-blush)]' : 'bg-[var(--color-sage-light,#d4e5d4)]'"
+        >
+          <span class="text-2xl">{{ stepEmoji }}</span>
         </div>
         <h1 class="font-display text-2xl font-semibold text-[var(--color-warm-gray)] mb-1">
-          {{ submitted ? 'Preferences Saved!' : 'Your Preferences' }}
+          {{ stepTitle }}
         </h1>
         <p class="text-sm text-[var(--color-warm-gray-light)]">
-          {{ submitted
-            ? 'Here\'s what you told us about your name preferences'
-            : 'Help us find names you\'ll love' }}
+          {{ stepSubtitle }}
         </p>
       </div>
 
@@ -95,39 +131,30 @@ function handleStartOver() {
 
       <!-- Submitting state -->
       <div v-if="submitting" class="text-center py-12">
-        <div class="animate-spin w-10 h-10 border-4 border-[var(--color-peach)] border-t-transparent rounded-full mx-auto mb-4" />
-        <p class="text-[var(--color-warm-gray-light)]">Saving your preferences...</p>
+        <div
+          class="animate-spin w-10 h-10 border-4 border-[var(--color-sage)] border-t-transparent rounded-full mx-auto mb-4"
+        />
+        <p class="text-[var(--color-warm-gray-light)]">Saving your filters...</p>
       </div>
 
       <!-- Submitted summary -->
       <div v-else-if="submitted" class="space-y-6">
-        <!-- Preferences summary -->
-        <div v-if="preferencesStore.userPreferences.length > 0" class="space-y-3">
-          <h3 class="font-semibold text-[var(--color-warm-gray)]">Your Preferences:</h3>
+        <!-- Filters summary -->
+        <div v-if="filtersStore.userFilters" class="space-y-3">
+          <h3 class="font-semibold text-[var(--color-warm-gray)]">Your Filters</h3>
           <div class="flex flex-wrap gap-2">
-            <span
-              v-for="pref in preferencesStore.userPreferences"
-              :key="pref.id"
-              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium"
-              :class="{
-                'bg-green-100 text-green-800': pref.level > 0,
-                'bg-gray-100 text-gray-600': pref.level === 0,
-                'bg-red-100 text-red-800': pref.level < 0,
-              }"
-            >
-              {{ pref.level > 0 ? '❤️' : pref.level < 0 ? '👎' : '➖' }}
-              {{ pref.categoryName }}
+            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-[var(--color-sage-light,#d4e5d4)] text-[var(--color-sage-dark,#5a8a5a)]">
+              {{ getNameStyleLabel(filtersStore.userFilters.nameStyle) }}
+            </span>
+            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-[var(--color-sage-light,#d4e5d4)] text-[var(--color-sage-dark,#5a8a5a)]">
+              {{ getSyllableLabel(filtersStore.userFilters.minSyllables, filtersStore.userFilters.maxSyllables) }}
             </span>
           </div>
         </div>
 
-        <div v-else class="text-center py-4 text-[var(--color-warm-gray-light)]">
-          No specific preferences set - you're open to all names!
-        </div>
-
         <!-- Partner status -->
         <div class="p-4 rounded-xl bg-[var(--color-cream)]">
-          <div v-if="preferencesStore.status?.bothCompleted" class="text-center">
+          <div v-if="filtersStore.status?.bothCompleted" class="text-center">
             <span class="text-2xl mb-2 block">🎉</span>
             <p class="font-semibold text-[var(--color-warm-gray)]">You're both ready!</p>
             <p class="text-sm text-[var(--color-warm-gray-light)]">Time to start discovering names together</p>
@@ -135,14 +162,14 @@ function handleStartOver() {
           <div v-else class="text-center">
             <span class="text-2xl mb-2 block">⏳</span>
             <p class="font-semibold text-[var(--color-warm-gray)]">Waiting for your partner</p>
-            <p class="text-sm text-[var(--color-warm-gray-light)]">They need to complete their preferences too</p>
+            <p class="text-sm text-[var(--color-warm-gray-light)]">They need to complete their setup too</p>
           </div>
         </div>
 
         <!-- Actions -->
         <div class="space-y-3 pt-2">
           <button
-            v-if="preferencesStore.status?.bothCompleted"
+            v-if="filtersStore.status?.bothCompleted"
             @click="handleContinue"
             class="btn-primary w-full text-center"
           >
@@ -159,15 +186,15 @@ function handleStartOver() {
             @click="handleStartOver"
             class="w-full py-3 text-center text-[var(--color-warm-gray-light)] hover:text-[var(--color-coral)] transition-colors"
           >
-            Update My Preferences
+            Update My Filters
           </button>
         </div>
       </div>
 
-      <!-- Questionnaire -->
-      <PreferenceQuestionnaire
+      <!-- Filter Questionnaire -->
+      <FilterQuestionnaire
         v-else
-        @complete="handleComplete"
+        @complete="handleFiltersComplete"
       />
 
       <!-- Back link -->

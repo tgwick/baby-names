@@ -10,10 +10,12 @@ namespace NameMatch.Infrastructure.Services;
 public class VoteService : IVoteService
 {
     private readonly ApplicationDbContext _context;
+    private readonly INameService _nameService;
 
-    public VoteService(ApplicationDbContext context)
+    public VoteService(ApplicationDbContext context, INameService nameService)
     {
         _context = context;
+        _nameService = nameService;
     }
 
     public async Task<VoteResultDto> SubmitVoteAsync(string userId, int nameId, VoteType voteType)
@@ -227,44 +229,8 @@ public class VoteService : IVoteService
         var totalDislikes = votes.Count(v => v.VoteType == VoteType.Dislike);
         var matchCount = await GetMatchCountAsync(userId);
 
-        // Calculate remaining names
-        var votedNameIds = votes.Select(v => v.NameId).ToList();
-        var namesQuery = _context.Names
-            .Include(n => n.CategoryMappings)
-            .AsQueryable();
-
-        if (session.TargetGender != Gender.Neutral)
-        {
-            namesQuery = namesQuery.Where(n =>
-                n.Gender == session.TargetGender || n.Gender == Gender.Neutral);
-        }
-
-        // Get both users' preferences and filter out excluded categories
-        var partnerId = session.InitiatorId == userId ? session.PartnerId : session.InitiatorId;
-        var userPreferences = await _context.UserPreferences
-            .Where(p => p.UserId == userId && p.SessionId == session.Id)
-            .ToDictionaryAsync(p => p.CategoryId, p => (int)p.Level);
-        var partnerPreferences = partnerId != null
-            ? await _context.UserPreferences
-                .Where(p => p.UserId == partnerId && p.SessionId == session.Id)
-                .ToDictionaryAsync(p => p.CategoryId, p => (int)p.Level)
-            : new Dictionary<int, int>();
-
-        var excludedCategoryIds = userPreferences
-            .Where(p => p.Value <= (int)PreferenceLevel.Dislike)
-            .Select(p => p.Key)
-            .Union(partnerPreferences
-                .Where(p => p.Value <= (int)PreferenceLevel.Dislike)
-                .Select(p => p.Key))
-            .ToHashSet();
-
-        if (excludedCategoryIds.Count > 0)
-        {
-            namesQuery = namesQuery.Where(n =>
-                !n.CategoryMappings.Any(cm => excludedCategoryIds.Contains(cm.CategoryId)));
-        }
-
-        var totalNames = await namesQuery.CountAsync();
+        // Get total names using NameService which applies hard filters (Classic, Syllables, etc.)
+        var totalNames = await _nameService.GetNameCountForSessionAsync(session.Id);
         var namesRemaining = totalNames - votes.Count;
 
         return new VoteStatsDto

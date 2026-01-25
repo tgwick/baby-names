@@ -1,4 +1,7 @@
 using FluentAssertions;
+using Moq;
+using NameMatch.Application.DTOs.Filters;
+using NameMatch.Application.Interfaces;
 using NameMatch.Domain.Entities;
 using NameMatch.Domain.Enums;
 using NameMatch.Infrastructure.Services;
@@ -8,12 +11,23 @@ namespace NameMatch.Tests.Services;
 
 public class NameServiceTests
 {
+    /// <summary>
+    /// Creates a mock IFilterService that returns no combined filters (no filtering).
+    /// </summary>
+    private static IFilterService CreateMockFilterService(CombinedFiltersDto? combinedFilters = null)
+    {
+        var mock = new Mock<IFilterService>();
+        mock.Setup(x => x.GetCombinedSessionFiltersAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(combinedFilters);
+        return mock.Object;
+    }
+
     [Fact]
     public async Task GetNextUnvotedNameAsync_ReturnsNull_WhenNoActiveSession()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var result = await service.GetNextUnvotedNameAsync("user-123");
@@ -52,7 +66,7 @@ public class NameServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var result = await service.GetNextUnvotedNameAsync(userId);
@@ -90,7 +104,7 @@ public class NameServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Get multiple names to verify filtering
         var results = new HashSet<string>();
@@ -134,7 +148,7 @@ public class NameServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var results = new HashSet<string>();
@@ -187,7 +201,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Get the next name multiple times
         var results = new HashSet<string>();
@@ -238,7 +252,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var result = await service.GetNextUnvotedNameAsync(userId);
@@ -272,7 +286,7 @@ public class NameServiceTests
         context.Names.Add(new Name { NameText = "Emma", Gender = Gender.Female, PopularityScore = 90 });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Partner should be able to get names
         var result = await service.GetNextUnvotedNameAsync(partnerId);
@@ -308,7 +322,7 @@ public class NameServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var count = await service.GetNameCountForSessionAsync(session.Id);
@@ -322,7 +336,7 @@ public class NameServiceTests
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var count = await service.GetNameCountForSessionAsync(Guid.NewGuid());
@@ -396,7 +410,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Get names multiple times and count which appears more
         var counts = new Dictionary<string, int> { ["William"] = 0, ["Zephyr"] = 0 };
@@ -466,7 +480,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var counts = new Dictionary<string, int> { ["Emma"] = 0, ["Xenobia"] = 0 };
@@ -541,7 +555,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Names with avoided categories should never appear
         var foundTrendy = false;
@@ -613,7 +627,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act
         var counts = new Dictionary<string, int> { ["William"] = 0, ["Zephyr"] = 0 };
@@ -688,7 +702,7 @@ public class NameServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Use enough iterations to ensure statistical significance
         var counts = new Dictionary<string, int> { ["David"] = 0, ["Zephyr"] = 0 };
@@ -757,7 +771,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Should work without throwing
         var name = await service.GetNextUnvotedNameAsync(userId);
@@ -765,6 +779,136 @@ public class NameServiceTests
         // Assert
         name.Should().NotBeNull();
         name!.NameText.Should().BeOneOf("William", "Zephyr");
+    }
+
+    [Fact]
+    public async Task GetNextUnvotedNameAsync_AppliesHardFilters_ClassicAndShortSyllables()
+    {
+        // Arrange
+        using var context = TestDbContextFactory.Create();
+        var userId = "user-123";
+        var partnerId = "partner-456";
+
+        var session = new Session
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = userId,
+            PartnerId = partnerId,
+            TargetGender = Gender.Male,
+            JoinCode = "ABC123",
+            PartnerLink = "link123",
+            Status = SessionStatus.Active,
+            CreatedAt = DateTime.UtcNow,
+            LinkedAt = DateTime.UtcNow
+        };
+        context.Sessions.Add(session);
+
+        // Create names with different characteristics
+        // Classic name (high stability, many decades, short)
+        var classicShort = new Name
+        {
+            NameText = "John",
+            Gender = Gender.Male,
+            PopularityScore = 80,
+            StabilityScore = 0.8f,
+            DecadesPresent = 6,
+            SyllableCount = 1
+        };
+        // Classic but long name
+        var classicLong = new Name
+        {
+            NameText = "Alexander",
+            Gender = Gender.Male,
+            PopularityScore = 70,
+            StabilityScore = 0.7f,
+            DecadesPresent = 5,
+            SyllableCount = 4
+        };
+        // Trendy name (not classic)
+        var trendyShort = new Name
+        {
+            NameText = "Jax",
+            Gender = Gender.Male,
+            PopularityScore = 50,
+            StabilityScore = 0.2f,
+            DecadesPresent = 2,
+            TrendScore = 0.8f,
+            PeakDecade = 2010,
+            SyllableCount = 1
+        };
+        context.Names.AddRange(classicShort, classicLong, trendyShort);
+        await context.SaveChangesAsync();
+
+        // Create combined filters for Classic + Short (1-2 syllables)
+        var combinedFilters = new CombinedFiltersDto
+        {
+            NameStyle = NameStyle.Classic,  // StabilityScore >= 0.5 && DecadesPresent >= 4
+            MinSyllables = 1,
+            MaxSyllables = 2
+        };
+
+        var service = new NameService(context, CreateMockFilterService(combinedFilters));
+
+        // Act - Get names multiple times
+        var foundNames = new HashSet<string>();
+        for (int i = 0; i < 50; i++)
+        {
+            var name = await service.GetNextUnvotedNameAsync(userId);
+            if (name != null) foundNames.Add(name.NameText);
+        }
+
+        // Assert - Should ONLY return "John" (Classic + Short)
+        foundNames.Should().Contain("John", "Classic short name should be included");
+        foundNames.Should().NotContain("Alexander", "Classic but long name should be excluded by syllable filter");
+        foundNames.Should().NotContain("Jax", "Trendy name should be excluded by classic filter");
+    }
+
+    [Fact]
+    public async Task GetNameCountForSessionAsync_AppliesHardFilters()
+    {
+        // Arrange
+        using var context = TestDbContextFactory.Create();
+
+        var session = new Session
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = "user-123",
+            TargetGender = Gender.Male,
+            JoinCode = "ABC123",
+            PartnerLink = "link123",
+            Status = SessionStatus.Active,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Sessions.Add(session);
+
+        // Add 5 names: 2 match filters, 3 don't
+        context.Names.AddRange(
+            // Matches Classic + Short
+            new Name { NameText = "John", Gender = Gender.Male, PopularityScore = 80, StabilityScore = 0.8f, DecadesPresent = 6, SyllableCount = 1 },
+            new Name { NameText = "James", Gender = Gender.Male, PopularityScore = 75, StabilityScore = 0.7f, DecadesPresent = 5, SyllableCount = 1 },
+            // Doesn't match - too long
+            new Name { NameText = "Alexander", Gender = Gender.Male, PopularityScore = 70, StabilityScore = 0.7f, DecadesPresent = 5, SyllableCount = 4 },
+            // Doesn't match - not classic
+            new Name { NameText = "Jax", Gender = Gender.Male, PopularityScore = 50, StabilityScore = 0.2f, DecadesPresent = 2, SyllableCount = 1 },
+            // Wrong gender
+            new Name { NameText = "Emma", Gender = Gender.Female, PopularityScore = 90, StabilityScore = 0.9f, DecadesPresent = 6, SyllableCount = 2 }
+        );
+        await context.SaveChangesAsync();
+
+        var combinedFilters = new CombinedFiltersDto
+        {
+            NameStyle = NameStyle.Classic,
+            MinSyllables = 1,
+            MaxSyllables = 2
+        };
+
+        var service = new NameService(context, CreateMockFilterService(combinedFilters));
+
+        // Act
+        var count = await service.GetNameCountForSessionAsync(session.Id);
+
+        // Assert - Should only count John and James (Classic + Short + Male)
+        count.Should().Be(2);
     }
 
     [Fact]
@@ -828,7 +972,7 @@ public class NameServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new NameService(context);
+        var service = new NameService(context, CreateMockFilterService());
 
         // Act - Use enough iterations to ensure statistical significance
         var counts = new Dictionary<string, int> { ["William"] = 0, ["Wade"] = 0 };
