@@ -6,11 +6,13 @@
 
 ## Features
 
+- **Multi-Session Support** - Create unlimited sessions for different name searches (e.g., boy names, girl names, backup options)
 - **Partner Linking** - Create a session and share a code/link with your partner
-- **Preference Filtering** - Set your name style preferences (classic, modern, biblical, nature-inspired, etc.) to filter out names you don't want
+- **Preference Filtering** - Set your name style preferences (classic, trendy, unique) and length to filter names
 - **Swipe Interface** - Like or dislike names one at a time
 - **Watch Names Hatch** - See names you both loved as they hatch into matches
 - **Conflict Resolution** - Review names where you disagreed
+- **Archive Sessions** - Archive completed sessions to keep your list tidy
 
 ## Tech Stack
 
@@ -121,32 +123,35 @@ hatchaname/
 ### Sessions
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/sessions` | List all user sessions |
 | POST | `/api/sessions` | Create session |
+| GET | `/api/sessions/{id}` | Get session by ID |
 | POST | `/api/sessions/join` | Join via code |
 | GET | `/api/sessions/join/{link}` | Join via partner link |
-| GET | `/api/sessions/current` | Get active session |
+| PATCH | `/api/sessions/{id}/archive` | Archive a session |
+| PATCH | `/api/sessions/{id}/unarchive` | Unarchive a session |
 
 ### Names & Voting
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/names/next?count=N` | Get N unvoted names |
-| POST | `/api/votes` | Submit vote |
-| GET | `/api/votes/matches` | Get mutual likes |
-| GET | `/api/votes/stats` | Voting statistics |
+| GET | `/api/names/next?sessionId={id}&count=N` | Get N unvoted names for session |
+| POST | `/api/votes?sessionId={id}` | Submit vote |
+| GET | `/api/votes/matches?sessionId={id}` | Get mutual likes |
+| GET | `/api/votes/stats?sessionId={id}` | Voting statistics |
 
 ### Conflicts
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/conflicts` | Get voting conflicts |
-| POST | `/api/conflicts/{nameId}/clear` | Clear dislike |
+| GET | `/api/conflicts?sessionId={id}` | Get voting conflicts |
+| POST | `/api/conflicts/{nameId}/clear?sessionId={id}` | Clear dislike |
 
-### Preferences
+### Filters (Preferences)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/preferences/questions` | Get preference questions |
-| GET | `/api/preferences` | Get user's saved preferences |
-| POST | `/api/preferences` | Save preference responses |
-| GET | `/api/preferences/status` | Check if both partners completed |
+| GET | `/api/filters/questions` | Get filter questions |
+| GET | `/api/filters?sessionId={id}` | Get user's saved filters |
+| POST | `/api/filters?sessionId={id}` | Save filter responses |
+| GET | `/api/filters/status?sessionId={id}` | Check if both partners completed |
 
 ### Health
 | Method | Endpoint | Description |

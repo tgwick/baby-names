@@ -57,16 +57,16 @@ npm run e2e:ui     # Run Playwright with interactive UI
 
 ### Frontend Structure
 
-- `src/stores/` - Pinia stores (`auth.ts` for JWT, `session.ts` for session/voting state, `preferences.ts` for preference questionnaire)
+- `src/stores/` - Pinia stores (`auth.ts` for JWT, `session.ts` for multi-session state, `filters.ts` for filter questionnaire)
 - `src/services/` - API client with Axios interceptors
 - `src/router/` - Vue Router with auth guards (`requiresAuth`, `guest` meta)
 - `src/views/` - Page components:
   - Auth: `LoginView`, `RegisterView`
-  - Session: `DashboardView`, `CreateSessionView`, `JoinSessionView`, `SessionView`
-  - Preferences: `PreferencesView`
-  - Voting: `SwipeView`, `MatchesView`, `ConflictsView`
-- `src/components/` - Reusable components (`NameCard`, `MatchCelebration`, `AppHeader`)
-- `src/types/` - TypeScript interfaces (`auth.ts`, `session.ts`, `vote.ts`, `preferences.ts`)
+  - Sessions: `SessionListView` (default after login), `SessionDetailView`, `CreateSessionView`, `JoinSessionView`, `JoinLinkView`
+  - Filters: `PreferencesView` (at `/sessions/:sessionId/preferences`)
+  - Voting: `SwipeView`, `MatchesView`, `ConflictsView` (all at `/sessions/:sessionId/*`)
+- `src/components/` - Reusable components (`NameCard`, `MatchCelebration`, `AppHeader`, `FilterQuestionnaire`)
+- `src/types/` - TypeScript interfaces (`auth.ts`, `session.ts`, `vote.ts`, `filters.ts`)
 
 ## API Endpoints
 
@@ -75,31 +75,33 @@ npm run e2e:ui     # Run Playwright with interactive UI
 - `POST /api/auth/login` - Login, returns JWT token
 - `GET /api/auth/me` - Get current user (requires auth)
 
-### Sessions
+### Sessions (Multi-Session Architecture)
+- `GET /api/sessions?includeArchived=false` - List all user sessions
 - `POST /api/sessions` - Create session with targetGender (0=Male, 1=Female, 2=Neutral)
+- `GET /api/sessions/{id}` - Get session by ID
 - `POST /api/sessions/join` - Join via JoinCode
 - `GET /api/sessions/join/{partnerLink}` - Join via partner link
-- `GET /api/sessions/current` - Get current active session
-- `GET /api/sessions/{id}` - Get session by ID
+- `PATCH /api/sessions/{id}/archive` - Archive a session
+- `PATCH /api/sessions/{id}/unarchive` - Unarchive a session
 
 ### Names
-- `GET /api/names/next?count=N` - Fetch N random unvoted names for current session
-- `GET /api/names/batch?count=N` - Alias for next
+- `GET /api/names/next?sessionId={id}&count=N` - Fetch N random unvoted names for session
+- `GET /api/names/batch?sessionId={id}&count=N` - Alias for next
 
-### Votes
-- `POST /api/votes` - Submit vote (NameId, VoteType: 0=Like, 1=Dislike)
-- `GET /api/votes/matches` - Get mutual likes for current session
-- `GET /api/votes/stats` - Get voting statistics (total votes, likes, matches)
+### Votes (all require sessionId query param)
+- `POST /api/votes?sessionId={id}` - Submit vote (NameId, VoteType: 0=Like, 1=Dislike)
+- `GET /api/votes/matches?sessionId={id}` - Get mutual likes for session
+- `GET /api/votes/stats?sessionId={id}` - Get voting statistics (total votes, likes, matches)
 
-### Conflicts
-- `GET /api/conflicts` - Get voting conflicts (names one liked, other disliked)
-- `POST /api/conflicts/{nameId}/clear` - Clear your dislike on a name
+### Conflicts (all require sessionId query param)
+- `GET /api/conflicts?sessionId={id}` - Get voting conflicts (names one liked, other disliked)
+- `POST /api/conflicts/{nameId}/clear?sessionId={id}` - Clear your dislike on a name
 
-### Preferences
-- `GET /api/preferences/questions` - Get preference questions with category options
-- `GET /api/preferences` - Get user's saved preferences for current session
-- `POST /api/preferences` - Save preference responses (categoryId, level: -2 to +2)
-- `GET /api/preferences/status` - Check if both partners have completed preferences
+### Filters (session-specific preferences)
+- `GET /api/filters/questions` - Get filter questions (name style, syllable length)
+- `GET /api/filters?sessionId={id}` - Get user's saved filters for session
+- `POST /api/filters?sessionId={id}` - Save filter responses (nameStyle, minSyllables, maxSyllables)
+- `GET /api/filters/status?sessionId={id}` - Check if both partners have completed filters
 
 ### Health
 - `GET /health` - Full health check with database status
@@ -112,17 +114,19 @@ npm run e2e:ui     # Run Playwright with interactive UI
 - Frontend proxies `/api` requests to backend via Vite config (port 5001)
 - Auth tokens stored in localStorage, attached via Axios interceptor
 - Router guards redirect unauthenticated users to `/login`
+- **Multi-session routing:** All session-specific routes use `/sessions/:sessionId/*` pattern
+- **Session context:** Frontend stores pass `sessionId` to all API calls; backend validates user belongs to session
 
 ## Database
 
 PostgreSQL with tables:
 - **AspNetUsers** - ASP.NET Identity (includes DisplayName, CreatedAt)
-- **Sessions** - Links two users with JoinCode/PartnerLink, stores TargetGender
-- **Names** - Baby names with Gender, PopularityScore, Origin
+- **Sessions** - Links two users with JoinCode/PartnerLink, stores TargetGender, IsArchived, ArchivedAt
+- **Names** - Baby names with Gender, PopularityScore, Origin, Syllables, TrendScore, StabilityScore
 - **Votes** - User votes (Like/Dislike) on names within a session
 - **NameCategories** - Categories for filtering (e.g., Biblical, Nature, Classic, Modern)
 - **NameCategoryMappings** - Many-to-many link between Names and Categories with confidence score
-- **UserPreferences** - User preference levels (-2 to +2) for each category per session
+- **UserFilters** - User filter settings per session (NameStyle, MinSyllables, MaxSyllables)
 
 ## Testing
 
@@ -142,11 +146,11 @@ PostgreSQL with tables:
 
 ### E2E Tests (Playwright)
 - **Location:** `frontend/e2e/`
-- `auth.setup.ts` - Authentication fixture (creates test user, saves storageState)
+- `auth.setup.ts` - Authentication fixture (creates test user, saves storageState, redirects to `/sessions`)
 - `auth.spec.ts` - Authentication flows, form validation, protected routes
-- `session.spec.ts` - Unauthenticated session redirects
-- `session.authenticated.ts` - Authenticated session tests (create, join, dashboard)
-- `preferences.authenticated.ts` - Preferences questionnaire flow, filtering verification
+- `session.spec.ts` - Unauthenticated session redirects (tests `/sessions` route)
+- `session.authenticated.ts` - Authenticated session tests (create, session list, session detail)
+- `preferences.authenticated.ts` - Filter questionnaire flow at `/sessions/:sessionId/preferences`
 - **Config:** `frontend/playwright.config.ts` - Multi-project setup (setup, chromium, chromium-authenticated)
 
 ## Configuration
