@@ -171,9 +171,17 @@ jobs:
         run: |
           dotnet run --project NameMatch.Api --configuration Release --no-build &
           echo "Waiting for backend to start..."
-          sleep 15
-          curl -f http://localhost:5001/health/live || exit 1
-          echo "Backend is ready!"
+          # Wait up to 60 seconds for backend to be ready (migrations + data seeding can take time on CI)
+          for i in {1..12}; do
+            if curl -sf http://localhost:5001/health/live > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              exit 0
+            fi
+            echo "Waiting for backend... attempt $i/12"
+            sleep 5
+          done
+          echo "Backend failed to start in time"
+          exit 1
 
       - name: Run E2E tests
         working-directory: frontend
