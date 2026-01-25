@@ -53,7 +53,7 @@ public class PreferenceServiceTests
     }
 
     [Fact]
-    public async Task GetQuestionsAsync_Returns7Questions()
+    public async Task GetQuestionsAsync_Returns2Questions()
     {
         // Arrange
         using var context = TestDbContextFactory.Create();
@@ -63,7 +63,7 @@ public class PreferenceServiceTests
         var result = await service.GetQuestionsAsync();
 
         // Assert
-        result.Should().HaveCount(7);
+        result.Should().HaveCount(2);
     }
 
     [Fact]
