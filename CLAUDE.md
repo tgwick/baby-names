@@ -12,6 +12,21 @@ Hatch A Name (hatchaname.com) is a cozy web app for couples to discover baby nam
 - **Frontend:** Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS
 - **Auth:** JWT tokens (email/password only for MVP)
 
+## Git Workflow
+
+This project uses **Gitflow** branching strategy:
+
+- **`main`** - Production-ready code. Only receives merges from `develop` (releases) or hotfix branches.
+- **`develop`** - Integration branch for features. All feature branches are created from and merged back into `develop`.
+- **Feature branches** - Created from `develop` with naming convention `feature/<description>`. Merged back to `develop` via PR.
+- **Hotfix branches** - Created from `main` for urgent production fixes. Merged to both `main` and `develop`.
+
+### Branch Rules
+- Never commit directly to `main` or `develop`
+- All changes require a PR with passing CI checks
+- Feature PRs target `develop`
+- Release PRs merge `develop` → `main`
+
 ## Commands
 
 ### Docker (Recommended - from project root)
