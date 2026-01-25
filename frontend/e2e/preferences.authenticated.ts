@@ -186,7 +186,7 @@ test.describe('Preferences Flow', () => {
     await page.getByRole('button', { name: /next/i }).click()
 
     await expect(page.getByText(/how long should the name/i)).toBeVisible({ timeout: 5000 })
-    await page.getByRole('button', { name: /long/i }).first().click()
+    await page.getByRole('button', { name: /flowing.*elegant/i }).click()
     await page.getByRole('button', { name: /continue/i }).click()
 
     // Should show updated choices
